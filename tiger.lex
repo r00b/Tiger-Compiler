@@ -3,6 +3,9 @@ type lexresult = Tokens.token
 
 val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos
+
+val string = ref ""
+
 fun err(p1,p2) = ErrorMsg.error p1
 
 fun eof() = let val pos = hd(!linePos) in Tokens.EOF(pos,pos) end
@@ -10,7 +13,8 @@ fun eof() = let val pos = hd(!linePos) in Tokens.EOF(pos,pos) end
 
 %%
 %s STRING
-  
+alpha=[a-zA-z];
+digit=[0-9];
 %%
 \n	 => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 type     => (Tokens.TYPE(yypos,yypos+size yytext));
@@ -53,11 +57,6 @@ array    => (Tokens.ARRAY(yypos,yypos+size yytext));
 ";"      => (Tokens.SEMICOLON(yypos,yypos+size yytext));
 :        => (Tokens.COLON(yypos,yypos+size yytext));
 ","      => (Tokens.COMMA(yypos,yypos+size yytext));
-<INITIAL>"\"" => (YYBEGIN STRING; continue());
-
-
-<STRING> => (Tokens.STRING(yytext,yypos,yypost+size yytext));
-[0-9]+   => (Tokens.INT(yytext,yypos,yypos+size yytext));
-[a-zA-z][a-zA-Z0-9_]* => (Tokens.ID(yytext,yypos,yypos+size yytext));
+"\"" => (YYBEGIN STRING; continue());
+<STRING>a => (string := !string ^ yytext);
 .        => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
-
