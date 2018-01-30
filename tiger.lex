@@ -9,7 +9,10 @@ fun eof() = let val pos = hd(!linePos) in Tokens.EOF(pos,pos) end
 
 
 %% 
+%s COMMENT
 %%
+" "    => (continue());
+\t     => (continue());
 \n	=> (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 ","	=> (Tokens.COMMA(yypos,yypos+1));
 var  	=> (Tokens.VAR(yypos,yypos+3));
