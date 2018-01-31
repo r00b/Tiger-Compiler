@@ -12,8 +12,7 @@ fun eof() = let val pos = hd(!linePos) in Tokens.EOF(pos,pos) end
 
 
 %% 
-%s COMMENT
-alpha=[a-zA-z];
+%s COMMENT alpha=[a-zA-z];
 digit=[0-9];
 notAster=[^*];
 %%
@@ -61,5 +60,5 @@ notAster=[^*];
 
 <INITIAL>"/*" => (YYBEGIN COMMENT; continue());
 <COMMENT>{notAster}|([*]+[^*/])* => (continue());
-<COMMENT>"*/" => (YYBEGIN INITIAL; continue());
+<COMMENT>[*]+"/" => (YYBEGIN INITIAL; continue());
 .        => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
