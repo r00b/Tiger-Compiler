@@ -7,6 +7,7 @@ val cc = ref 0 (* commentCounter *)
 val str : string ref = ref ""
 
 fun err(p1,p2) = ErrorMsg.error p1
+  
 fun isCommentClosed cc = if !cc <> 0
                          then ErrorMsg.error 10 ("illegal comment ")
                          else ()
@@ -19,13 +20,12 @@ fun eof() =
   end
 
 %%
-%s COMMENT
-%s STRING_STATE;
+%s COMMENT STRING_STATE;
 notAster=[^*];
 chars=[\ !#\$%&'()*+,\-./0-9:;<=>?@A-Z[\\\]\^_`a-z{|}~];
 digits=[0-9];
 %%
-<INITIAL>\ *  => (continue());
+<INITIAL>[\t\ ]*  => (continue());
 <INITIAL>\n	 => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <INITIAL>type     => (Tokens.TYPE(yypos,yypos+size yytext));
 <INITIAL>var   	 => (Tokens.VAR(yypos,yypos+size yytext));
@@ -81,6 +81,7 @@ digits=[0-9];
 <STRING_STATE>\\\ => (str := (!str) ^ "\\"; continue());
 <STRING_STATE>{chars} => (str := (!str) ^ yytext; continue());
 <STRING_STATE>"\"" => (YYBEGIN INITIAL; Tokens.STRING(!str,yypos,yypos+size (!str)));
+
 <INITIAL>{digits} => (Tokens.INT((valOf (Int.fromString yytext)),yypos,yypos+size yytext));
-<INITIAL>[a-zA-z][a-zA-Z0-9_]* => (Tokens.ID(yytext,yypos,yypos+size yytext));
+<INITIAL>[a-zA-Z][a-zA-Z0-9_]* => (Tokens.ID(yytext,yypos,yypos+size yytext));
 <INITIAL>.        => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
