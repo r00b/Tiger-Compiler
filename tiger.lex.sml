@@ -108,14 +108,22 @@ type lexresult = Tokens.token
 val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos
 val cc = ref 0 (* commentCounter *)
+val sc = ref true
 val str : string ref = ref ""
 
-fun err(p1,p2) = ErrorMsg.error p1
+fun err(p1,p2) = ErrorMsg.error p1;
+  
 fun isCommentClosed cc = if !cc <> 0
-                         then ErrorMsg.error 10 ("illegal comment ")
-                         else ()
+  then ErrorMsg.error 10 ("illegal comment ")
+  else ();
+
+fun isStringClosed sc = if !sc
+  then ()
+  else ErrorMsg.error 10 ("illegal string ");
+	 
 fun eof() =
   let
+    val () = isStringClosed sc
     val () = isCommentClosed cc
     val pos = hd(!linePos)
   in
@@ -392,7 +400,7 @@ fun yyAction44 (strm, lastMatch : yymatch) = (yystrm := strm;
 fun yyAction45 (strm, lastMatch : yymatch) = (yystrm := strm;
       (cc := !cc - 1; if !cc = 0 then YYBEGIN INITIAL else (); continue()))
 fun yyAction46 (strm, lastMatch : yymatch) = (yystrm := strm;
-      (YYBEGIN STRING_STATE; str := ""; continue()))
+      (YYBEGIN STRING_STATE; sc := false; str := ""; continue()))
 fun yyAction47 (strm, lastMatch : yymatch) = (yystrm := strm; (continue()))
 fun yyAction48 (strm, lastMatch : yymatch) = (yystrm := strm;
       (str := (!str) ^ "\n"; continue()))
@@ -408,7 +416,7 @@ fun yyAction52 (strm, lastMatch : yymatch) = let
         yystrm := strm; (str := (!str) ^ yytext; continue())
       end
 fun yyAction53 (strm, lastMatch : yymatch) = (yystrm := strm;
-      (YYBEGIN INITIAL; Tokens.STRING(!str,yypos,yypos+size (!str))))
+      (YYBEGIN INITIAL; sc := true; Tokens.STRING(!str,yypos,yypos+size (!str))))
 fun yyAction54 (strm, lastMatch : yymatch) = let
       val yytext = yymktext(strm)
       in
