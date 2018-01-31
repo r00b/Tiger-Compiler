@@ -9,7 +9,7 @@ val str : string ref = ref ""
 fun err(p1,p2) = ErrorMsg.error p1
   
 fun isCommentClosed cc = if !cc <> 0
-                         then ErrorMsg.error 10 ("illegal comment ")
+                         then ((cc := 0); ErrorMsg.error 10 ("illegal comment "))
                          else ()
 fun eof() =
   let
