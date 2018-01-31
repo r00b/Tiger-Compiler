@@ -3,16 +3,24 @@ type lexresult = Tokens.token
 
 val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos
-
 val string = ref ""
+val cc = ref 0 (* commentCounter *)
 
 fun err(p1,p2) = ErrorMsg.error p1
+fun isCommentClosed cc = if !cc <> 0
+                         then ErrorMsg.error 10 ("illegal comment ")
+                         else ()
+fun eof() =
+  let
+    val () = isCommentClosed cc
+    val pos = hd(!linePos)
+  in
+    Tokens.EOF(pos,pos)
+  end
 
-fun eof() = let val pos = hd(!linePos) in Tokens.EOF(pos,pos) end
 
-
-%% 
-%s COMMENT alpha=[a-zA-z];
+%%
+%s COMMENT
 digit=[0-9];
 notAster=[^*];
 %%
@@ -57,8 +65,10 @@ notAster=[^*];
 <INITIAL>";"      => (Tokens.SEMICOLON(yypos,yypos+size yytext));
 <INITIAL>:        => (Tokens.COLON(yypos,yypos+size yytext));
 <INITIAL>","      => (Tokens.COMMA(yypos,yypos+size yytext));
+<INITIAL>" "      => (continue());
 
-<INITIAL>"/*" => (YYBEGIN COMMENT; continue());
+<INITIAL>"/*"                    => (cc := 0; YYBEGIN COMMENT; cc := !cc + 1; continue());
 <COMMENT>{notAster}|([*]+[^*/])* => (continue());
-<COMMENT>[*]+"/" => (YYBEGIN INITIAL; continue());
+<COMMENT>"/*"                    => (cc := !cc + 1; continue());
+<COMMENT>[*]+"/" => (cc := !cc - 1; if !cc = 0 then YYBEGIN INITIAL else (); continue());
 .        => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
