@@ -23,7 +23,9 @@ fun eof() =
 %s STRING_STATE;
 notAster=[^*];
 chars=[\ !#\$%&'()*+,\-./0-9:;<=>?@A-Z[\\\]\^_`a-z{|}~];
+digits=[0-9];
 %%
+<INITIAL>\ *  => (continue());
 <INITIAL>\n	 => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <INITIAL>type     => (Tokens.TYPE(yypos,yypos+size yytext));
 <INITIAL>var   	 => (Tokens.VAR(yypos,yypos+size yytext));
@@ -65,21 +67,20 @@ chars=[\ !#\$%&'()*+,\-./0-9:;<=>?@A-Z[\\\]\^_`a-z{|}~];
 <INITIAL>";"      => (Tokens.SEMICOLON(yypos,yypos+size yytext));
 <INITIAL>:        => (Tokens.COLON(yypos,yypos+size yytext));
 <INITIAL>","      => (Tokens.COMMA(yypos,yypos+size yytext));
-<INITIAL>" "      => (continue());
 
 <INITIAL>"/*"                    => (cc := 0; YYBEGIN COMMENT; cc := !cc + 1; continue());
 <COMMENT>{notAster}|([*]+[^*/])* => (continue());
 <COMMENT>"/*"                    => (cc := !cc + 1; continue());
 <COMMENT>[*]+"/" => (cc := !cc - 1; if !cc = 0 then YYBEGIN INITIAL else (); continue());
-.        => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
 
 <INITIAL>"\"" => (YYBEGIN STRING_STATE; str := ""; continue());
-<STRING_STATE>\\\" => (str := (!str) ^ "\""; continue());
+<STRING_STATE>\\[\n\t\f\ ]*\\ => (continue());
 <STRING_STATE>\\n => (str := (!str) ^ "\n"; continue());
 <STRING_STATE>\\t => (str := (!str) ^ "\t"; continue());
-<STRING_STATE>\\\^c|\\\^C => (str := (!str) ^ "^c"; continue());
-<STRING_STATE>\\ddd => (str := (!str) ^ "\n"; continue());
+<STRING_STATE>\\\" => (str := (!str) ^ "\""; continue());
+<STRING_STATE>\\\ => (str := (!str) ^ "\\"; continue());
 <STRING_STATE>{chars} => (str := (!str) ^ yytext; continue());
-<STRING_STATE>"\"" => (YYBEGIN INITIAL; print("exited\n"); Tokens.STRING(!str,yypos,yypos+size (!str)));
-
+<STRING_STATE>"\"" => (YYBEGIN INITIAL; Tokens.STRING(!str,yypos,yypos+size (!str)));
+<INITIAL>{digits} => (Tokens.INT((valOf (Int.fromString yytext)),yypos,yypos+size yytext));
+<INITIAL>[a-zA-z][a-zA-Z0-9_]* => (Tokens.ID(yytext,yypos,yypos+size yytext));
 <INITIAL>.        => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
