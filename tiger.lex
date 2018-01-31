@@ -3,8 +3,8 @@ type lexresult = Tokens.token
 
 val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos
-val string = ref ""
 val cc = ref 0 (* commentCounter *)
+val str : string ref = ref ""
 
 fun err(p1,p2) = ErrorMsg.error p1
 fun isCommentClosed cc = if !cc <> 0
@@ -18,11 +18,11 @@ fun eof() =
     Tokens.EOF(pos,pos)
   end
 
-
 %%
 %s COMMENT
-digit=[0-9];
+%s STRING_STATE;
 notAster=[^*];
+chars=[\ !#\$%&'()*+,\-./0-9:;<=>?@A-Z[\\\]\^_`a-z{|}~];
 %%
 <INITIAL>\n	 => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <INITIAL>type     => (Tokens.TYPE(yypos,yypos+size yytext));
@@ -72,3 +72,14 @@ notAster=[^*];
 <COMMENT>"/*"                    => (cc := !cc + 1; continue());
 <COMMENT>[*]+"/" => (cc := !cc - 1; if !cc = 0 then YYBEGIN INITIAL else (); continue());
 .        => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
+
+<INITIAL>"\"" => (YYBEGIN STRING_STATE; str := ""; continue());
+<STRING_STATE>\\\" => (str := (!str) ^ "\""; continue());
+<STRING_STATE>\\n => (str := (!str) ^ "\n"; continue());
+<STRING_STATE>\\t => (str := (!str) ^ "\t"; continue());
+<STRING_STATE>\\\^c|\\\^C => (str := (!str) ^ "^c"; continue());
+<STRING_STATE>\\ddd => (str := (!str) ^ "\n"; continue());
+<STRING_STATE>{chars} => (str := (!str) ^ yytext; continue());
+<STRING_STATE>"\"" => (YYBEGIN INITIAL; print("exited\n"); Tokens.STRING(!str,yypos,yypos+size (!str)));
+
+<INITIAL>.        => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
