@@ -87,6 +87,7 @@ digits=[0-9];
 <STRING_STATE>\\t => (str := (!str) ^ "\t"; continue());
 <STRING_STATE>\\\" => (str := (!str) ^ "\""; continue());
 <STRING_STATE>\\\ => (str := (!str) ^ "\\"; continue());
+<STRING_STATE>\\. => (ErrorMsg.error yypos ("illegal escape sequence " ^ yytext); continue());
 <STRING_STATE>{chars} => (str := (!str) ^ yytext; continue());
 
 <STRING_STATE>"\"" => (YYBEGIN INITIAL; Tokens.STRING(!str,yypos,yypos+size (!str)));
