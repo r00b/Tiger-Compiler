@@ -10,8 +10,8 @@ val str : string ref = ref ""
 fun err(p1,p2) = ErrorMsg.error p1;
   
 fun isCommentClosed cc = if !cc <> 0
-                         then ((cc := 0); ErrorMsg.error 10 ("illegal comment "))
-                         else ()
+  then ((cc := 0); ErrorMsg.error 10 ("illegal comment "))
+  else ();
 
 fun isStringClosed sc = if !sc
   then ()
@@ -24,7 +24,7 @@ fun eof() =
     val pos = hd(!linePos)
   in
     Tokens.EOF(pos,pos)
-  end
+  end;
 
 %%
 %s COMMENT STRING_STATE;
