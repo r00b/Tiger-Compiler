@@ -29,7 +29,7 @@ fun eof() =
 %%
 %s COMMENT STRING_STATE;
 notAster=[^*];
-chars=[\ !#\$%&'()*+,\-./0-9:;<=>?@A-Z[\\\]\^_`a-z{|}~];
+chars=[ !#\$%&'()*+,\-./0-9:;<=>?@A-Z[\]\^_`a-z{|}~];
 digits=[0-9];
 %%
 <INITIAL>[\t\ ]*  => (continue());
@@ -81,11 +81,12 @@ digits=[0-9];
 <COMMENT>[*]+"/" => (cc := !cc - 1; if !cc = 0 then YYBEGIN INITIAL else (); continue());
 
 <INITIAL>"\"" => (YYBEGIN STRING_STATE; sc := false; str := ""; continue());
+<STRING_STATE>\\\\ => (str := (!str) ^ "\\"; continue());
 <STRING_STATE>\\[\n\t\f\ ]*\\ => (continue());
+<STRING_STATE>\n => (ErrorMsg.error yypos ("illegal newline in string "); continue());
 <STRING_STATE>\\n => (str := (!str) ^ "\n"; continue());
 <STRING_STATE>\\t => (str := (!str) ^ "\t"; continue());
 <STRING_STATE>\\\" => (str := (!str) ^ "\""; continue());
-<STRING_STATE>\\\ => (str := (!str) ^ "\\"; continue());
 <STRING_STATE>{chars} => (str := (!str) ^ yytext; continue());
 <STRING_STATE>"\"" => (YYBEGIN INITIAL; sc := true; Tokens.STRING(!str,yypos,yypos+size (!str)));
 
