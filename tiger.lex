@@ -4,15 +4,22 @@ type lexresult = Tokens.token
 val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos
 val cc = ref 0 (* commentCounter *)
+val sc = ref true
 val str : string ref = ref ""
 
-fun err(p1,p2) = ErrorMsg.error p1
+fun err(p1,p2) = ErrorMsg.error p1;
   
 fun isCommentClosed cc = if !cc <> 0
                          then ((cc := 0); ErrorMsg.error 10 ("illegal comment "))
                          else ()
+
+fun isStringClosed sc = if !sc
+  then ()
+  else ((sc := true); ErrorMsg.error 10 ("illegal string "));
+
 fun eof() =
   let
+    val () = isStringClosed sc
     val () = isCommentClosed cc
     val pos = hd(!linePos)
   in
@@ -76,7 +83,7 @@ digits=[0-9];
 <COMMENT>"/*"                    => (cc := !cc + 1; continue());
 <COMMENT>[*]+"/" => (cc := !cc - 1; if !cc = 0 then YYBEGIN INITIAL else (); continue());
 
-<INITIAL>"\"" => (YYBEGIN STRING_STATE; str := ""; continue());
+<INITIAL>"\"" => (YYBEGIN STRING_STATE; sc := false; str := ""; continue());
 <STRING_STATE>\\[\n\t\f\ ]*\\ => (continue());
 <STRING_STATE>\\12[0-6]       => (str := (!str) ^ toASCII (yytext); continue());
 <STRING_STATE>\\1[01][0-9]    => (str := (!str) ^ toASCII (yytext); continue());
@@ -90,7 +97,7 @@ digits=[0-9];
 <STRING_STATE>\\. => (ErrorMsg.error yypos ("illegal escape sequence " ^ yytext); continue());
 <STRING_STATE>{chars} => (str := (!str) ^ yytext; continue());
 
-<STRING_STATE>"\"" => (YYBEGIN INITIAL; Tokens.STRING(!str,yypos,yypos+size (!str)));
+<STRING_STATE>"\"" => (YYBEGIN INITIAL; sc := true; Tokens.STRING(!str,yypos,yypos+size (!str)));
 
 <INITIAL>{digits} => (Tokens.INT((valOf (Int.fromString yytext)),yypos,yypos+size yytext));
 <INITIAL>[a-zA-Z][a-zA-Z0-9_]* => (Tokens.ID(yytext,yypos,yypos+size yytext));
