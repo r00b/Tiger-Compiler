@@ -19,6 +19,10 @@ fun eof() =
     Tokens.EOF(pos,pos)
   end
 
+fun dddToInt yytext= Int.fromString( String.substring(yytext, 1, String.size(yytext)-1))
+fun toASCII yytext = Char.toString(Char.chr(valOf(dddToInt yytext)))
+
+
 %%
 %s COMMENT STRING_STATE;
 notAster=[^*];
