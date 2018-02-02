@@ -20,9 +20,15 @@ lexer\_string2.tig : unmatched quotes
 lexer\_string3.tig : matched quotes
 lexer\_string4.tig : unmatched quotes
 
-TODO
+### Escape control char
+ 
+  lexer\_controlChar1.tig : \^I (\t)
+  lexer\_controlChar2.tig : \^J (\n)
+  lexer\_controlChar3.tig : \^L (\f)
 
-escape sequence checking
+  Reference
+      https://en.wikipedia.org/wiki/Control_character  
+      http://www.aivosto.com/vbtips/control-characters.html#ascii
 
 #### \ddd
 lexer\_slashddd1.tig: match all 32 - 126 characters.

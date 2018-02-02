@@ -28,6 +28,10 @@ fun eof() =
 
 fun dddToInt yytext= Int.fromString( String.substring(yytext, 1, String.size(yytext)-1))
 fun dddToASCII yytext = String.str(Char.chr(valOf(dddToInt yytext)))
+fun escapeControlChar yytext = case String.sub(yytext, 2) of 
+                                  #"I" => "\t"
+                                | #"J" => "\n"
+                                | #"L" => "\f"
 
 %%
 %s COMMENT STRING_STATE;
@@ -86,6 +90,7 @@ digits=[0-9];
 <INITIAL>"\""                 => (YYBEGIN STRING_STATE; sc := false; str := ""; continue());
 <STRING_STATE>\\\\            => (str := (!str) ^ "\\"; continue());
 <STRING_STATE>\\[\n\t\f\ ]*\\ => (continue());
+<STRING_STATE>\\"^"[I|J|L]    => (str := (!str) ^ escapeControlChar (yytext); continue());
 <STRING_STATE>\\12[0-6]       => (str := (!str) ^ dddToASCII (yytext); continue());
 <STRING_STATE>\\1[01][0-9]    => (str := (!str) ^ dddToASCII (yytext); continue());
 <STRING_STATE>\\[4-9][0-9]    => (str := (!str) ^ dddToASCII (yytext); continue());
