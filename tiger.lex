@@ -9,18 +9,18 @@ val str : string ref = ref ""
 
 fun err(p1,p2) = ErrorMsg.error p1;
   
-fun isCommentClosed cc = if !cc <> 0
+fun checkCommentClosed cc = if !cc <> 0
   then ((cc := 0); ErrorMsg.error 10 ("illegal comment "))
   else ();
 
-fun isStringClosed sc = if !sc
+fun checkStringClosed sc = if !sc
   then ()
   else ((sc := true); ErrorMsg.error 10 ("illegal string "));
 
 fun eof() =
   let
-    val () = isStringClosed sc
-    val () = isCommentClosed cc
+    val () = checkStringClosed sc
+    val () = checkCommentClosed cc
     val pos = hd(!linePos)
   in
     Tokens.EOF(pos,pos)
@@ -32,7 +32,7 @@ fun toASCII yytext = String.str(Char.chr(valOf(dddToInt yytext)))
 %%
 %s COMMENT STRING_STATE;
 notAster=[^*];
-chars=[\ !#\$%&'()*+,\-./0-9:;<=>?@A-Z[\\\]\^_`a-z{|}~];
+chars=[ !#\$%&'()*+,\-./0-9:;<=>?@A-Z[\]\^_`a-z{|}~];
 digits=[0-9];
 %%
 <INITIAL>[\t\ ]*  => (continue());
@@ -81,24 +81,24 @@ digits=[0-9];
 <INITIAL>"/*"                    => (cc := 0; YYBEGIN COMMENT; cc := !cc + 1; continue());
 <COMMENT>{notAster}|([*]+[^*/])* => (continue());
 <COMMENT>"/*"                    => (cc := !cc + 1; continue());
-<COMMENT>[*]+"/" => (cc := !cc - 1; if !cc = 0 then YYBEGIN INITIAL else (); continue());
+<COMMENT>[*]+"/"                 => (cc := !cc - 1; if !cc = 0 then YYBEGIN INITIAL else (); continue());
 
-<INITIAL>"\"" => (YYBEGIN STRING_STATE; sc := false; str := ""; continue());
+<INITIAL>"\""                 => (YYBEGIN STRING_STATE; sc := false; str := ""; continue());
+<STRING_STATE>\\\\            => (str := (!str) ^ "\\"; continue());
 <STRING_STATE>\\[\n\t\f\ ]*\\ => (continue());
 <STRING_STATE>\\12[0-6]       => (str := (!str) ^ toASCII (yytext); continue());
 <STRING_STATE>\\1[01][0-9]    => (str := (!str) ^ toASCII (yytext); continue());
 <STRING_STATE>\\[4-9][0-9]    => (str := (!str) ^ toASCII (yytext); continue());
 <STRING_STATE>\\3[2-9]        => (str := (!str) ^ toASCII (yytext); continue());
 <STRING_STATE>\\(9|10|12)     => (str := (!str) ^ toASCII (yytext); continue());
-<STRING_STATE>\\n => (str := (!str) ^ "\n"; continue());
-<STRING_STATE>\\t => (str := (!str) ^ "\t"; continue());
-<STRING_STATE>\\\" => (str := (!str) ^ "\""; continue());
-<STRING_STATE>\\\ => (str := (!str) ^ "\\"; continue());
-<STRING_STATE>\\. => (ErrorMsg.error yypos ("illegal escape sequence " ^ yytext); continue());
-<STRING_STATE>{chars} => (str := (!str) ^ yytext; continue());
-
-<STRING_STATE>"\"" => (YYBEGIN INITIAL; sc := true; Tokens.STRING(!str,yypos,yypos+size (!str)));
+<STRING_STATE>\\n             => (str := (!str) ^ "\n"; continue());
+<STRING_STATE>\\t             => (str := (!str) ^ "\t"; continue());
+<STRING_STATE>\\\"            => (str := (!str) ^ "\""; continue());
+<STRING_STATE>\\.             => (ErrorMsg.error yypos ("Illegal escape sequence: in string: " ^ yytext); continue());
+<STRING_STATE>{chars}         => (str := (!str) ^ yytext; continue());
+<STRING_STATE>"\""            => (YYBEGIN INITIAL; sc := true; Tokens.STRING(!str,yypos,yypos+size (!str)));
+<STRING_STATE>[^{chars}]      => (ErrorMsg.error yypos ("Illegal characters inside string: " ^ yytext); continue());
 
 <INITIAL>{digits} => (Tokens.INT((valOf (Int.fromString yytext)),yypos,yypos+size yytext));
 <INITIAL>[a-zA-Z][a-zA-Z0-9_]* => (Tokens.ID(yytext,yypos,yypos+size yytext));
-<INITIAL>.        => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
+<INITIAL>.        => (ErrorMsg.error yypos ("Illegal character " ^ yytext); continue());
