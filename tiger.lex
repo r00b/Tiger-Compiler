@@ -26,6 +26,9 @@ fun eof() =
     Tokens.EOF(pos,pos)
   end;
 
+fun dddToInt yytext= Int.fromString( String.substring(yytext, 1, String.size(yytext)-1))
+fun toASCII yytext = String.str(Char.chr(valOf(dddToInt yytext)))
+
 %%
 %s COMMENT STRING_STATE;
 notAster=[^*];
@@ -82,11 +85,18 @@ digits=[0-9];
 
 <INITIAL>"\"" => (YYBEGIN STRING_STATE; sc := false; str := ""; continue());
 <STRING_STATE>\\[\n\t\f\ ]*\\ => (continue());
+<STRING_STATE>\\12[0-6]       => (str := (!str) ^ toASCII (yytext); continue());
+<STRING_STATE>\\1[01][0-9]    => (str := (!str) ^ toASCII (yytext); continue());
+<STRING_STATE>\\[4-9][0-9]    => (str := (!str) ^ toASCII (yytext); continue());
+<STRING_STATE>\\3[2-9]        => (str := (!str) ^ toASCII (yytext); continue());
+<STRING_STATE>\\(9|10|12)     => (str := (!str) ^ toASCII (yytext); continue());
 <STRING_STATE>\\n => (str := (!str) ^ "\n"; continue());
 <STRING_STATE>\\t => (str := (!str) ^ "\t"; continue());
 <STRING_STATE>\\\" => (str := (!str) ^ "\""; continue());
 <STRING_STATE>\\\ => (str := (!str) ^ "\\"; continue());
+<STRING_STATE>\\. => (ErrorMsg.error yypos ("illegal escape sequence " ^ yytext); continue());
 <STRING_STATE>{chars} => (str := (!str) ^ yytext; continue());
+
 <STRING_STATE>"\"" => (YYBEGIN INITIAL; sc := true; Tokens.STRING(!str,yypos,yypos+size (!str)));
 
 <INITIAL>{digits} => (Tokens.INT((valOf (Int.fromString yytext)),yypos,yypos+size yytext));
