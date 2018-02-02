@@ -1,0 +1,35 @@
+Stage: lexer
+
+Team member: Robert Steilberg and Tai-Lin Wu
+
+Implementation Details:
+
+1. INT: cannot start with 0 expect 0 itself.
+
+2. String:  
+  Escaping:
+    \ddd: we accept  9 tab
+                    10 new line 
+                    12 from feed
+                    32-126 printable characters
+         (we use \32 rather than \032)
+
+    \n \t \" \\ are legal escape sequnce inside string. Other
+    than these, we use \\. to capture it and report error.
+         
+    \f__f\: we only capture f__f with [\n\t\f\ ]. Otherwise,
+    if there are any other characters that is not in [\n\t\f\ ],
+    it shall be captured as an error either by 
+
+          <STRING_STATE>\\.
+          <STRING_STATE>[^{chars}]  <- we use this line to capture
+              illegal characters such as \n, \t, \f,... that is not
+              escaped. We use [^{char}] because . will not capture 
+              \n.  {chars} are printable characters defined as 
+              
+              chars=[ !#\$%&'()*+,\-./0-9:;<=>?@A-Z[\]\^_`a-z{|}~];
+        
+3. Comments:
+  We ignore all characters (even non-printable) between any 
+  (potentailly) nested /* */ sequence.
+  A counter `cc` is used to monitor the nested comments.
