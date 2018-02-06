@@ -28,10 +28,9 @@ fun eof() =
 
 fun dddToInt yytext= Int.fromString( String.substring(yytext, 1, String.size(yytext)-1))
 fun dddToASCII yytext = String.str(Char.chr(valOf(dddToInt yytext)))
-fun escapeControlChar yytext = case String.sub(yytext, 2) of 
-                                  #"I" => "\t"
-                                | #"J" => "\n"
-                                | #"L" => "\f"
+  
+fun controlCharCaps yytext = (Char.toString (chr ((ord (String.sub(yytext, 2))) - 64)))
+fun controlCharLower yytext = (Char.toString (chr ((ord (String.sub(yytext, 2))) - 96)))
 
 %%
 %s COMMENT STRING_STATE;
@@ -40,9 +39,9 @@ chars=[ !#\$%&'()*+,\-./0-9:;<=>?@A-Z[\]\^_`a-z{|}~];
 digits=[0-9];
 %%
 <INITIAL>[\t\ ]*  => (continue());
-<INITIAL>\n	 => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
+<INITIAL>\n	  => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <INITIAL>type     => (Tokens.TYPE(yypos,yypos+size yytext));
-<INITIAL>var   	 => (Tokens.VAR(yypos,yypos+size yytext));
+<INITIAL>var   	  => (Tokens.VAR(yypos,yypos+size yytext));
 <INITIAL>function => (Tokens.FUNCTION(yypos,yypos+size yytext));
 <INITIAL>break    => (Tokens.BREAK(yypos,yypos+size yytext));
 <INITIAL>of       => (Tokens.OF(yypos,yypos+size yytext));
@@ -87,10 +86,15 @@ digits=[0-9];
 <COMMENT>"/*"                    => (cc := !cc + 1; continue());
 <COMMENT>[*]+"/"                 => (cc := !cc - 1; if !cc = 0 then YYBEGIN INITIAL else (); continue());
 
+
 <INITIAL>"\""                 => (YYBEGIN STRING_STATE; sc := false; str := ""; continue());
 <STRING_STATE>\\\\            => (str := (!str) ^ "\\"; continue());
 <STRING_STATE>\\[\n\t\f\ ]*\\ => (continue());
-<STRING_STATE>\\"^"[I|J|L]    => (str := (!str) ^ escapeControlChar (yytext); continue());
+
+
+<STRING_STATE>\\"^"[@-Z]      => (str := (!str) ^ controlCharCaps (yytext); continue());
+<STRING_STATE>\\"^"[a-z]      => (str := (!str) ^ controlCharLower (yytext); continue());
+
 <STRING_STATE>\\12[0-6]       => (str := (!str) ^ dddToASCII (yytext); continue());
 <STRING_STATE>\\1[01][0-9]    => (str := (!str) ^ dddToASCII (yytext); continue());
 <STRING_STATE>\\[4-9][0-9]    => (str := (!str) ^ dddToASCII (yytext); continue());
