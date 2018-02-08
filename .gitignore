@@ -3,3 +3,6 @@ tiger.lex.sml
 .cm/
 .#*
 *.swp
+tiger.grm.desc
+tiger.grm.sig
+tiger.grm.sml
