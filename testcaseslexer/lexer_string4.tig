@@ -1,0 +1,2 @@
+var s = "this is a multiline\
+        \string that is not closed
