@@ -33,7 +33,7 @@ fun controlCharCaps yytext = (Char.toString (chr ((ord (String.sub(yytext, 2))) 
 fun controlCharLower yytext = (Char.toString (chr ((ord (String.sub(yytext, 2))) - 96)))
 
 %%
-%s COMMENT STRING_STATE;
+%s COMMENT STRING_STATE INT_STATE;
 notAster=[^*];
 chars=[ !#\$%&'()*+,\-./0-9:;<=>?@A-Z[\]\^_`a-z{|}~];
 digits=[0-9];
@@ -108,6 +108,8 @@ digits=[0-9];
 <STRING_STATE>"\""            => (YYBEGIN INITIAL; sc := true; Tokens.STRING(!str,yypos,yypos+size (!str)));
 <STRING_STATE>[^{chars}]      => (ErrorMsg.error yypos ("Illegal characters inside string: " ^ yytext); continue());
 
-<INITIAL>{digits}|([1-9]{digits}+) => (Tokens.INT((valOf (Int.fromString yytext)),yypos,yypos+size yytext));
+<INITIAL>0+ => (continue());
+<INITIAL>{digits}+ => (Tokens.INT((valOf (Int.fromString yytext)),yypos,yypos+size yytext));
+
 <INITIAL>[a-zA-Z][a-zA-Z0-9_]* => (Tokens.ID(yytext,yypos,yypos+size yytext));
 <INITIAL>.        => (ErrorMsg.error yypos ("Illegal character " ^ yytext); continue());
