@@ -7,6 +7,8 @@ val cc = ref 0 (* commentCounter *)
 val sc = ref true
 val str : string ref = ref ""
 
+val stringPos = ref 0
+
 fun err(p1,p2) = ErrorMsg.error p1;
   
 fun checkCommentClosed cc = if !cc <> 0
@@ -33,7 +35,7 @@ fun controlCharCaps yytext = (Char.toString (chr ((ord (String.sub(yytext, 2))) 
 fun controlCharLower yytext = (Char.toString (chr ((ord (String.sub(yytext, 2))) - 96)))
 
 %%
-%s COMMENT STRING_STATE INT_STATE;
+%s COMMENT STRING_STATE;
 notAster=[^*];
 chars=[ !#\$%&'()*+,\-./0-9:;<=>?@A-Z[\]\^_`a-z{|}~];
 digits=[0-9];
@@ -87,7 +89,7 @@ digits=[0-9];
 <COMMENT>[*]+"/"                 => (cc := !cc - 1; if !cc = 0 then YYBEGIN INITIAL else (); continue());
 
 
-<INITIAL>"\""                 => (YYBEGIN STRING_STATE; sc := false; str := ""; continue());
+<INITIAL>"\""                 => (YYBEGIN STRING_STATE; stringPos := yypos; sc := false; str := ""; continue());
 <STRING_STATE>\\\\            => (str := (!str) ^ "\\"; continue());
 <STRING_STATE>\\[\n\t\f\ ]*\\ => (continue());
 
@@ -105,7 +107,7 @@ digits=[0-9];
 <STRING_STATE>\\\"            => (str := (!str) ^ "\""; continue());
 <STRING_STATE>\\.             => (ErrorMsg.error yypos ("Illegal escape sequence: in string: " ^ yytext); continue());
 <STRING_STATE>{chars}         => (str := (!str) ^ yytext; continue());
-<STRING_STATE>"\""            => (YYBEGIN INITIAL; sc := true; Tokens.STRING(!str,yypos,yypos+size (!str)));
+<STRING_STATE>"\""            => (YYBEGIN INITIAL; sc := true; Tokens.STRING(!str,!stringPos,yypos+size (!str)));
 <STRING_STATE>[^{chars}]      => (ErrorMsg.error yypos ("Illegal characters inside string: " ^ yytext); continue());
 
 <INITIAL>0+ => (continue());

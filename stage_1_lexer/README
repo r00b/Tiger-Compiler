@@ -4,7 +4,7 @@ Team member: Robert Steilberg and Tai-Lin Wu
 
 Implementation Details:
 
-1. INT: cannot start with 0 expect 0 itself.
+1. INT: leading zeroes are handled.
 
 2. String:  
   Escaping:
