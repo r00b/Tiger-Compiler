@@ -50,6 +50,8 @@ structure A = Absyn
 %nonterm
           program of A.exp
         | exp of A.exp
+	| exp_list of A.exp list
+	| bin_op of A.oper 
 
 %pos int
 %verbose
@@ -75,6 +77,26 @@ program	:
 
 	
 exp :
-      ID                                   (A.VarExp(
+      ID                                   (A.VarExp(A.SimpleVar(Symbol.symbol(ID), IDleft)))
     | NIL		                   (A.NilExp)
     | INT                                  (A.IntExp(INT))
+    | STRING                               (A.StringExp(STRING, STRINGleft))
+    | ID LPAREN exp_list RPAREN            (A.CallExp({func = Symbol.symbol(ID), args = exp_list, pos = IDleft}))
+    | exp bin_op exp                        (A.OpExp({left = exp, oper = bin_op, right = exp2, pos = expleft}))
+	 
+exp_list :
+                                           (nil)
+        | exp                              (exp::nil)
+        | exp COMMA exp_list               (exp::exp_list)
+
+bin_op :
+     PLUS                    (A.PlusOp)
+   | MINUS                   (A.MinusOp)
+   | TIMES                   (A.TimesOp)
+   | DIVIDE                  (A.DivideOp)
+   | EQ                      (A.EqOp)
+   | NEQ                     (A.NeqOp)
+   | LT                      (A.LtOp)
+   | LE                      (A.LeOp)
+   | GT                      (A.GtOp)
+   | GE                      (A.GeOp)
