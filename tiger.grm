@@ -51,7 +51,8 @@ structure A = Absyn
           program of A.exp
         | exp of A.exp
 	| exp_list of A.exp list
-	| bin_op of A.oper 
+	| bin_op of A.oper
+	| record_fields of (A.symbol * A.exp * A.pos) list
 
 %pos int
 %verbose
@@ -82,7 +83,9 @@ exp :
     | INT                                  (A.IntExp(INT))
     | STRING                               (A.StringExp(STRING, STRINGleft))
     | ID LPAREN exp_list RPAREN            (A.CallExp({func = Symbol.symbol(ID), args = exp_list, pos = IDleft}))
-    | exp bin_op exp                        (A.OpExp({left = exp, oper = bin_op, right = exp2, pos = expleft}))
+    | exp bin_op exp                       (A.OpExp({left = exp, oper = bin_op, right = exp2, pos = expleft}))
+    | ID LBRACE record_fields RBRACE       (A.RecordExp({fields = record_fields, typ = Symbol.symbol(ID), pos = IDleft}))
+    | VAR ID ASSIGN exp                    (A.AssignExp({var = A.SimpleVar(Symbol.symbol(ID), VARleft), exp = exp, pos = VARleft}))
 	 
 exp_list :
                                            (nil)
@@ -90,13 +93,18 @@ exp_list :
         | exp COMMA exp_list               (exp::exp_list)
 
 bin_op :
-     PLUS                    (A.PlusOp)
-   | MINUS                   (A.MinusOp)
-   | TIMES                   (A.TimesOp)
-   | DIVIDE                  (A.DivideOp)
-   | EQ                      (A.EqOp)
-   | NEQ                     (A.NeqOp)
-   | LT                      (A.LtOp)
-   | LE                      (A.LeOp)
-   | GT                      (A.GtOp)
-   | GE                      (A.GeOp)
+         PLUS                              (A.PlusOp)
+       | MINUS                             (A.MinusOp)
+       | TIMES                             (A.TimesOp)
+       | DIVIDE                            (A.DivideOp)
+       | EQ                                (A.EqOp)
+       | NEQ                               (A.NeqOp)
+       | LT                                (A.LtOp)
+       | LE                                (A.LeOp)
+       | GT                                (A.GtOp)
+       | GE                                (A.GeOp)
+
+record_fields :
+                                                 (nil)
+                | ID EQ exp                      ((Symbol.symbol(ID), exp, IDleft)::nil)
+                | ID EQ exp COMMA record_fields  ((Symbol.symbol(ID), exp, IDleft)::record_fields)
