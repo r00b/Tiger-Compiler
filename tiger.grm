@@ -49,11 +49,8 @@ structure A = Absyn
 
 %nonterm
           program of A.exp
-	  
         | exp of A.exp
-	| op of A.oper 
 
-     
 %pos int
 %verbose
 %start program
@@ -74,32 +71,10 @@ structure A = Absyn
 %%
 
 program	:
-      exp		     (exp)
+	  exp                              (exp)  
 
 	
 exp :
-      VAR                    (A.VarExp(VAR))
-    | NIL		     (A.NilExp)
-    | INT                    (A.IntExp(INT))
-    | STRING                 (A.StringExp(STRING,STRINGleft))
-    | ID LPAREN exp RPAREN   (A.CallExp({func: , args: exp, pos: IDleft}))
-    | exp op exp             (A.OpExp({left: exp, oper: op, right: exp2, pos: expleft}))
-    |
-    |
-    | VAR ASSIGN exp         (A.AssignExp({var: VAR, exp: exp, pos: VARleft}))
-    | IF exp THEN exp        (A.IfExp({test: exp, then': exp2, else': NIL, pos: IFleft}))
-    | IF exp THEN exp ELSE exp (A.IfExp({test: exp, then': exp2, else': exp3, pos: IFleft}))
-    | 
-
-	  
-op :
-     PLUS                    (A.PlusOp)
-   | MINUS                   (A.MinusOp)
-   | TIMES                   (A.TimesOp)
-   | DIVIDE                  (A.DivideOp)
-   | EQ                      (A.EqOp)
-   | NEQ                     (A.NeqOp)
-   | LT                      (A.LtOp)
-   | LE                      (A.LeOp)
-   | GT                      (A.GtOp)
-   | GE                      (A.GeOp)
+      ID                                   (A.VarExp(
+    | NIL		                   (A.NilExp)
+    | INT                                  (A.IntExp(INT))
