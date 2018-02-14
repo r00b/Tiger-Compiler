@@ -116,8 +116,21 @@ vardec :
        VAR ID ASSIGN expExceptNil          ()
      | VAR ID COLON ID ASSIGN exp          ()
 
+expExceptNil :
+       
+       ID                                   (A.VarExp(A.SimpleVar(Symbol.symbol(ID), IDleft)))
+      | INT                                  (A.IntExp(INT))
+      | STRING                               (A.StringExp(STRING, STRINGleft))
+      | LET decs IN exp END                  (A.NilExp)
 
 ty :
     ID                                 ()
    | LBRACE tyfields RBRACE            ()
    | ARRAY OF ID                       ()
+
+tyfields :
+     ID COLON ID commatyfields         ()
+
+commatyfields : 
+                                        ()
+  | COMMA tyfields                        (tyfields)
