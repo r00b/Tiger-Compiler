@@ -90,8 +90,6 @@ exp :
     | NIL		                   (A.NilExp)
     | INT                                  (A.IntExp(INT))
     | STRING                               (A.StringExp(STRING, STRINGleft))
-    | ID LPAREN exp_list RPAREN            (A.CallExp({func = Symbol.symbol(ID), args = exp_list, pos = IDleft}))
-    | exp bin_op exp                        (A.OpExp({left = exp, oper = bin_op, right = exp2, pos = expleft}))
     | LET decs IN exp END                  (A.LetExp({decs=decs, body=exp, pos=LETleft}))
 
 decs : 
@@ -103,10 +101,10 @@ dec :
 
 tydecs :
       NIL                                   (nil)
-     | tydec tydecs                          (tydec::tydecs)
+     | tydec tydecs                         (tydec::tydecs)
 
 tydec : 
-     TYPE typeid EQ ty                     ({name=typeid, ty=ty, pos=TYPEleft})
+     TYPE ID EQ ty                     ({name=Symbol.symbol(ID), ty=ty, pos=TYPEleft})
 
 ty : 
     typeid                                 (A.NameTy(typeid, typeidleft))
@@ -114,7 +112,7 @@ ty :
    | ARRAY OF typeid                       (A.ArrayTy(typeid, ARRAYleft))
 
 tyfields : 
-     ID COLON typeid commatyfields         ({name=Symbol.symbol(ID), escape=ref true, typ=typeid, pos=typeidleft}::commatyfields)
+     ID COLON typeid commatyfields         ({name=Symbol.symbol(ID), escape=ref true, typ=typeid, pos=IDleft}::commatyfields)
 
 typeid : ID                                (Symbol.symbol(ID))
        | INT                               (Symbol.symbol("int"))
