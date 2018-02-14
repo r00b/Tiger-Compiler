@@ -1,0 +1,8 @@
+let
+	type arrtype = array of int
+	type rectype = {name:string, id: int}
+        var loveCompiler: rectype := nil
+        function abc(d: int) = d
+in
+  10
+end
