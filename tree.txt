@@ -1,0 +1,5 @@
+OpExp(PlusOp,
+ IntExp(2),
+ SeqExp[
+  IntExp(3),
+  IntExp(2)])
