@@ -2,20 +2,20 @@ structure A = Absyn
 
 %%
 %term
-    EOF 
+    EOF
   | ID of string
   | INT of int
-  | STRING of string 
+  | STRING of string
   | COMMA
   | COLON
   | SEMICOLON
   | LPAREN
   | RPAREN
   | LBRACK
-  | RBRACK 
+  | RBRACK
   | LBRACE
   | RBRACE
-  | DOT 
+  | DOT
   | PLUS
   | MINUS
   | TIMES
@@ -40,27 +40,27 @@ structure A = Absyn
   | LET
   | IN
   | END
-  | OF 
+  | OF
   | BREAK
   | NIL
   | FUNCTION
   | VAR
-  | TYPE 
+  | TYPE
 
 %nonterm
           program of A.exp
         | exp of A.exp
-	| exp_list of A.exp list
-	| bin_op of A.oper 
+	      | exp_list of A.exp list
+	      | bin_op of A.oper
         | ty of A.ty
         | dec of A.dec
         | decs of A.dec list
-        | tydec of {name: A.symbol, ty: A.ty, pos: A.pos} 
+        | tydec of {name: A.symbol, ty: A.ty, pos: A.pos}
         | tydecs of {name: A.symbol, ty: A.ty, pos: A.pos} list
-        | vardec of A.dec
-        | typeid of A.symbol 
+        | typeid of A.symbol
         | tyfields of {name: A.symbol, escape: bool ref, typ: A.symbol, pos: A.pos} list
         | commatyfields of {name: A.symbol, escape: bool ref, typ: A.symbol, pos: A.pos} list
+        | T
 
 %pos int
 %verbose
@@ -82,60 +82,33 @@ structure A = Absyn
 %%
 
 program	:
-	  exp                              (exp)  
+	  exp                              (exp)
 
-	
 exp :
       ID                                   (A.VarExp(A.SimpleVar(Symbol.symbol(ID), IDleft)))
-    | NIL		                   (A.NilExp)
     | INT                                  (A.IntExp(INT))
     | STRING                               (A.StringExp(STRING, STRINGleft))
     | LET decs IN exp END                  (A.LetExp({decs=decs, body=exp, pos=LETleft}))
+    | NIL		                               (A.NilExp)
 
-decs : 
-      NIL                                   (nil)
-     | dec decs                             (dec::decs)
+decs :
+      dec T                             (dec::T)
 
-dec : 
+T :
+       decs                              (decs)
+     |                                    ()
+
+dec :
        tydecs                               (A.TypeDec(tydecs))
 
 tydecs :
-      NIL                                   (nil)
+                                            ()
      | tydec tydecs                         (tydec::tydecs)
 
-tydec : 
+tydec :
      TYPE ID EQ ty                     ({name=Symbol.symbol(ID), ty=ty, pos=TYPEleft})
 
-ty : 
-    typeid                                 (A.NameTy(typeid, typeidleft))
-   | LBRACE tyfields RBRACE                (A.RecordTy(tyfields))
-   | ARRAY OF typeid                       (A.ArrayTy(typeid, ARRAYleft))
-
-tyfields : 
-     ID COLON typeid commatyfields         ({name=Symbol.symbol(ID), escape=ref true, typ=typeid, pos=IDleft}::commatyfields)
-
-typeid : ID                                (Symbol.symbol(ID))
-       | INT                               (Symbol.symbol("int"))
-       | STRING                            (Symbol.symbol("string"))
-
-commatyfields : 
-     NIL                                   (nil)
-   | COMMA tyfields                        (tyfields)
-
-
-exp_list :
-                                           (nil)
-        | exp                              (exp::nil)
-        | exp COMMA exp_list               (exp::exp_list)
-
-bin_op :
-     PLUS                    (A.PlusOp)
-   | MINUS                   (A.MinusOp)
-   | TIMES                   (A.TimesOp)
-   | DIVIDE                  (A.DivideOp)
-   | EQ                      (A.EqOp)
-   | NEQ                     (A.NeqOp)
-   | LT                      (A.LtOp)
-   | LE                      (A.LeOp)
-   | GT                      (A.GtOp)
-   | GE                      (A.GeOp)
+ty :
+    ID                                 (A.NameTy(Symbol.symbol(ID), IDleft))
+   | LBRACE tyfields RBRACE            (A.RecordTy(tyfields))
+   | ARRAY OF ID                       (A.ArrayTy(Symbol.symbol(ID), ARRAYleft))
