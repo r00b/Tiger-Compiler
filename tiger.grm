@@ -52,6 +52,15 @@ structure A = Absyn
         | exp of A.exp
 	| exp_list of A.exp list
 	| bin_op of A.oper 
+        | ty of A.ty
+        | dec of A.dec
+        | decs of A.dec list
+        | tydec of {name: A.symbol, ty: A.ty, pos: A.pos} 
+        | tydecs of {name: A.symbol, ty: A.ty, pos: A.pos} list
+        | vardec of A.dec
+        | typeid of A.symbol 
+        | tyfields of {name: A.symbol, escape: bool ref, typ: A.symbol, pos: A.pos} list
+        | commatyfields of {name: A.symbol, escape: bool ref, typ: A.symbol, pos: A.pos} list
 
 %pos int
 %verbose
@@ -83,7 +92,39 @@ exp :
     | STRING                               (A.StringExp(STRING, STRINGleft))
     | ID LPAREN exp_list RPAREN            (A.CallExp({func = Symbol.symbol(ID), args = exp_list, pos = IDleft}))
     | exp bin_op exp                        (A.OpExp({left = exp, oper = bin_op, right = exp2, pos = expleft}))
-	 
+    | LET decs IN exp END                  (A.LetExp({decs=decs, body=exp, pos=LETleft}))
+
+decs : 
+      NIL                                   (nil)
+     | dec decs                             (dec::decs)
+
+dec : 
+       tydecs                               (A.TypeDec(tydecs))
+
+tydecs :
+      NIL                                   (nil)
+     | tydec tydecs                          (tydec::tydecs)
+
+tydec : 
+     TYPE typeid EQ ty                     ({name=typeid, ty=ty, pos=TYPEleft})
+
+ty : 
+    typeid                                 (A.NameTy(typeid, typeidleft))
+   | LBRACE tyfields RBRACE                (A.RecordTy(tyfields))
+   | ARRAY OF typeid                       (A.ArrayTy(typeid, ARRAYleft))
+
+tyfields : 
+     ID COLON typeid commatyfields         ({name=Symbol.symbol(ID), escape=ref true, typ=typeid, pos=typeidleft}::commatyfields)
+
+typeid : ID                                (Symbol.symbol(ID))
+       | INT                               (Symbol.symbol("int"))
+       | STRING                            (Symbol.symbol("string"))
+
+commatyfields : 
+     NIL                                   (nil)
+   | COMMA tyfields                        (tyfields)
+
+
 exp_list :
                                            (nil)
         | exp                              (exp::nil)
