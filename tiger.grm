@@ -52,15 +52,17 @@ structure A = Absyn
         | exp of A.exp
 	      | exp_list of A.exp list
 	      | bin_op of A.oper
-        | ty of A.ty
-        | dec of A.dec
-        | decs of A.dec list
-        | tydec of {name: A.symbol, ty: A.ty, pos: A.pos}
-        | tydecs of {name: A.symbol, ty: A.ty, pos: A.pos} list
-        | typeid of A.symbol
-        | tyfields of {name: A.symbol, escape: bool ref, typ: A.symbol, pos: A.pos} list
-        | commatyfields of {name: A.symbol, escape: bool ref, typ: A.symbol, pos: A.pos} list
+        | ty
+        | dec
+        | decs
+        | tydec
+        | fundec
+        | vardec
+        | typeid 
+        | tyfields 
+        | commatyfields
         | T
+        | expExceptNil
 
 %pos int
 %verbose
@@ -88,27 +90,34 @@ exp :
       ID                                   (A.VarExp(A.SimpleVar(Symbol.symbol(ID), IDleft)))
     | INT                                  (A.IntExp(INT))
     | STRING                               (A.StringExp(STRING, STRINGleft))
-    | LET decs IN exp END                  (A.LetExp({decs=decs, body=exp, pos=LETleft}))
+    | LET decs IN exp END                  (A.NilExp)
     | NIL		                               (A.NilExp)
 
 decs :
-      dec T                             (dec::T)
+      dec T                             ()
 
 T :
-       decs                              (decs)
-     |                                    ()
+                                         ()
+    |  decs                              ()
 
 dec :
-       tydecs                               (A.TypeDec(tydecs))
+       tydec                               ()
+    | fundec ()
+    | vardec ()
 
-tydecs :
-                                            ()
-     | tydec tydecs                         (tydec::tydecs)
 
 tydec :
-     TYPE ID EQ ty                     ({name=Symbol.symbol(ID), ty=ty, pos=TYPEleft})
+     TYPE ID EQ ty                     ()
+
+fundec :
+       FUNCTION ID LPAREN tyfields RPAREN EQ exp ()
+
+vardec :
+       VAR ID ASSIGN expExceptNil          ()
+     | VAR ID COLON ID ASSIGN exp          ()
+
 
 ty :
-    ID                                 (A.NameTy(Symbol.symbol(ID), IDleft))
-   | LBRACE tyfields RBRACE            (A.RecordTy(tyfields))
-   | ARRAY OF ID                       (A.ArrayTy(Symbol.symbol(ID), ARRAYleft))
+    ID                                 ()
+   | LBRACE tyfields RBRACE            ()
+   | ARRAY OF ID                       ()
