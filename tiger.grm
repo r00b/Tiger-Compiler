@@ -56,6 +56,7 @@ val outs : TextIO.outstream ref = ref (TextIO.openOut "tree.txt")
 	| exp_list of A.exp list
 	| bin_op of A.oper
 	| record_fields of (A.symbol * A.exp * A.pos) list
+	| lval of A.var
 
 %pos int
 %verbose
@@ -70,9 +71,9 @@ val outs : TextIO.outstream ref = ref (TextIO.openOut "tree.txt")
 
 %prefer THEN ELSE LPAREN
 %right SEMICOLON
+%nonassoc LT LE GT GE EQ NEQ
 %left PLUS MINUS
-
-
+%left TIMES DIVIDE
 
 %value ID ("bogus")
 %value INT (1)
@@ -93,6 +94,7 @@ exp :
     | exp bin_op exp                       (A.OpExp({left = exp, oper = bin_op, right = exp2, pos = expleft}))
     | ID LBRACE record_fields RBRACE       (A.RecordExp({fields = record_fields, typ = Symbol.symbol(ID), pos = IDleft}))
     | VAR ID ASSIGN exp                    (A.AssignExp({var = A.SimpleVar(Symbol.symbol(ID), VARleft), exp = exp, pos = VARleft}))
+    | lval ASSIGN exp                      (A.AssignExp({var = lval, exp = exp, pos = lvalleft}))
     | IF exp THEN exp ELSE exp             (A.IfExp({test = exp, then' = exp2, else' = SOME exp3, pos = IFleft}))
     | IF exp THEN exp                      (A.IfExp({test = exp, then' = exp2, else' = NONE, pos = IFleft}))
     | WHILE exp DO exp                     (A.WhileExp({test = exp, body = exp2, pos = WHILEleft}))
@@ -127,3 +129,9 @@ record_fields :
                                                  (nil)
                 | ID EQ exp                      ((Symbol.symbol(ID), exp, IDleft)::nil)
                 | ID EQ exp COMMA record_fields  ((Symbol.symbol(ID), exp, IDleft)::record_fields)
+
+lval :
+       ID                      (A.SimpleVar(Symbol.symbol(ID), IDleft))
+     | lval DOT ID             (A.FieldVar(lval, Symbol.symbol(ID), lvalleft))
+     | ID LBRACK exp RBRACK    (A.SubscriptVar(A.SimpleVar(Symbol.symbol(ID),IDleft),exp,IDleft))
+     | lval LBRACK exp RBRACK  (A.SubscriptVar(lval,exp,lvalleft))
