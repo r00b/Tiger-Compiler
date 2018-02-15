@@ -54,10 +54,9 @@ val outs : TextIO.outstream ref = ref (TextIO.openOut "tree.txt")
           program of A.exp
         | exp of A.exp
 	| exp_list of A.exp list
-	| bin_op of A.oper
 	| record_fields of (A.symbol * A.exp * A.pos) list
 	| lval of A.var
-
+	  
 %pos int
 %verbose
 %start program
@@ -71,9 +70,16 @@ val outs : TextIO.outstream ref = ref (TextIO.openOut "tree.txt")
 
 %prefer THEN ELSE LPAREN
 %right SEMICOLON
+%left THEN
+%left ELSE
+%left OF
+%left DO
+%left ASSIGN
+%left AND OR
 %nonassoc LT LE GT GE EQ NEQ
 %left PLUS MINUS
 %left TIMES DIVIDE
+%left LBRACK
 
 %value ID ("bogus")
 %value INT (1)
@@ -91,7 +97,18 @@ exp :
     | INT                                  (A.IntExp(INT))
     | STRING                               (A.StringExp(STRING, STRINGleft))
     | ID LPAREN exp_list RPAREN            (A.CallExp({func = Symbol.symbol(ID), args = exp_list, pos = IDleft}))
-    | exp bin_op exp                       (A.OpExp({left = exp, oper = bin_op, right = exp2, pos = expleft}))
+    | exp PLUS exp                         (A.OpExp({left = exp, oper = A.PlusOp, right = exp2, pos = expleft}))
+    | exp MINUS exp                        (A.OpExp({left = exp, oper = A.MinusOp, right = exp2, pos = expleft}))
+    | exp TIMES exp                        (A.OpExp({left = exp, oper = A.TimesOp, right = exp2, pos = expleft}))
+    | exp DIVIDE exp                       (A.OpExp({left = exp, oper = A.DivideOp, right = exp2, pos = expleft}))
+    | exp EQ exp                           (A.OpExp({left = exp, oper = A.EqOp, right = exp2, pos = expleft}))
+    | exp NEQ exp                          (A.OpExp({left = exp, oper = A.NeqOp, right = exp2, pos = expleft}))
+    | exp LT exp                           (A.OpExp({left = exp, oper = A.LtOp, right = exp2, pos = expleft}))
+    | exp LE exp                           (A.OpExp({left = exp, oper = A.LeOp, right = exp2, pos = expleft}))
+    | exp GT exp                           (A.OpExp({left = exp, oper = A.GtOp, right = exp2, pos = expleft}))
+    | exp GE exp                           (A.OpExp({left = exp, oper = A.GeOp, right = exp2, pos = expleft}))
+    | exp AND exp                          (A.IfExp({test = exp, then' = exp2, else' = SOME(A.IntExp(0)), pos = ANDleft}))
+    | exp OR exp                           (A.IfExp({test = exp, then' = A.IntExp(1), else' = SOME(exp2), pos = ORleft}))
     | ID LBRACE record_fields RBRACE       (A.RecordExp({fields = record_fields, typ = Symbol.symbol(ID), pos = IDleft}))
     | VAR ID ASSIGN exp                    (A.AssignExp({var = A.SimpleVar(Symbol.symbol(ID), VARleft), exp = exp, pos = VARleft}))
     | lval ASSIGN exp                      (A.AssignExp({var = lval, exp = exp, pos = lvalleft}))
@@ -112,18 +129,6 @@ exp_list :
                                            (nil)
         | exp                              (exp::nil)
         | exp COMMA exp_list               (exp::exp_list)
-
-bin_op :
-         PLUS                              (A.PlusOp)
-       | MINUS                             (A.MinusOp)
-       | TIMES                             (A.TimesOp)
-       | DIVIDE                            (A.DivideOp)
-       | EQ                                (A.EqOp)
-       | NEQ                               (A.NeqOp)
-       | LT                                (A.LtOp)
-       | LE                                (A.LeOp)
-       | GT                                (A.GtOp)
-       | GE                                (A.GeOp)
 
 record_fields :
                                                  (nil)
