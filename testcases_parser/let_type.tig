@@ -1,0 +1,5 @@
+let 
+   type arrtype = array of int
+in 
+  10
+end

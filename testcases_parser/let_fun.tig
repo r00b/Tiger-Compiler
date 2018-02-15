@@ -1,0 +1,5 @@
+let 
+    function try(c:int) = 10
+in 
+    try(100)
+end

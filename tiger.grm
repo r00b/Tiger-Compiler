@@ -5,20 +5,20 @@ val outs : TextIO.outstream ref = ref (TextIO.openOut "tree.txt")
 							
 %%
 %term
-    EOF 
+    EOF
   | ID of string
   | INT of int
-  | STRING of string 
+  | STRING of string
   | COMMA
   | COLON
   | SEMICOLON
   | LPAREN
   | RPAREN
   | LBRACK
-  | RBRACK 
+  | RBRACK
   | LBRACE
   | RBRACE
-  | DOT 
+  | DOT
   | PLUS
   | MINUS
   | TIMES
@@ -43,12 +43,12 @@ val outs : TextIO.outstream ref = ref (TextIO.openOut "tree.txt")
   | LET
   | IN
   | END
-  | OF 
+  | OF
   | BREAK
   | NIL
   | FUNCTION
   | VAR
-  | TYPE 
+  | TYPE
 
 %nonterm
           program of A.exp
@@ -56,7 +56,18 @@ val outs : TextIO.outstream ref = ref (TextIO.openOut "tree.txt")
 	| exp_list of A.exp list
 	| record_fields of (A.symbol * A.exp * A.pos) list
 	| lval of A.var
-	  
+        | ty
+        | dec
+        | decs
+        | tydec
+        | fundec
+        | vardec
+        | typeid 
+        | tyfields 
+        | commatyfields
+        | T
+        | expExceptNil
+
 %pos int
 %verbose
 %start program
@@ -90,10 +101,8 @@ val outs : TextIO.outstream ref = ref (TextIO.openOut "tree.txt")
 program	:
 	  exp      (outs := TextIO.openOut "tree.txt"; P.print(!outs,exp); exp)  
 
-	
 exp :
       ID                                   (A.VarExp(A.SimpleVar(Symbol.symbol(ID), IDleft)))
-    | NIL		                   (A.NilExp)
     | INT                                  (A.IntExp(INT))
     | STRING                               (A.StringExp(STRING, STRINGleft))
     | ID LPAREN exp_list RPAREN            (A.CallExp({func = Symbol.symbol(ID), args = exp_list, pos = IDleft}))
@@ -123,6 +132,7 @@ exp :
 					      	A.SeqExp(exps) => A.SeqExp((exp, expleft)::exps)
 					      | _ => A.SeqExp([(exp,expleft),(exp2,exp2left)]))
     | ID LBRACK exp RBRACK OF exp          (A.ArrayExp({typ = Symbol.symbol(ID), size = exp, init = exp2, pos = IDleft}))
+    | LET decs IN exp END                  (A.NilExp)
 
 	 
 exp_list :
@@ -140,3 +150,47 @@ lval :
      | lval DOT ID             (A.FieldVar(lval, Symbol.symbol(ID), lvalleft))
      | ID LBRACK exp RBRACK    (A.SubscriptVar(A.SimpleVar(Symbol.symbol(ID),IDleft),exp,IDleft))
      | lval LBRACK exp RBRACK  (A.SubscriptVar(lval,exp,lvalleft))
+
+decs :
+                                        ()
+    |  T                             ()
+
+T : 
+  dec decs                            ()
+
+
+dec :
+       tydec                               (tydec)
+    | fundec                               (fundec)
+    | vardec                               (vardec)
+
+
+tydec :
+     TYPE ID EQ ty                     ({name=Symbol.symbol(ID), ty=ty, pos=TYPEleft})
+
+fundec :
+       FUNCTION ID LPAREN tyfields RPAREN EQ exp              ({name=Symbol.symbol(ID1), params=tyfields, result=NONE, body=exp, pos=FUNCTIONleft})
+     | FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp     ({name=Symbol.symbol(ID1), params=tyfields, result=ID2, body=exp, pos=FUNCTIONleft})
+
+vardec :
+       VAR ID ASSIGN expExceptNil          ({name=Symbol.symbol(ID), escape=ref true, typ=NONE, init=expExceptNil, pos=VARleft})
+     | VAR ID COLON ID ASSIGN exp          ({name=Symbol.symbol(ID1), escape=ref true, typ=ID2, init=exp, pos=VARleft})
+
+
+expExceptNil :
+       ID                                   (A.VarExp(A.SimpleVar(Symbol.symbol(ID), IDleft)))
+      | INT                                  (A.IntExp(INT))
+      | STRING                               (A.StringExp(STRING, STRINGleft))
+      | LET decs IN exp END                  (A.NilExp)
+
+ty :
+    ID                                 ()
+   | LBRACE tyfields RBRACE            ()
+   | ARRAY OF ID                       ()
+
+tyfields :
+     ID COLON ID commatyfields         ()
+
+commatyfields : 
+                                        ()
+  | COMMA tyfields                        (tyfields)
