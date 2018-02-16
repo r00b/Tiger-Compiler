@@ -3,6 +3,7 @@ structure P = PrintAbsyn
 
 val outs : TextIO.outstream ref = ref (TextIO.openOut "tree.txt")
 							
+
 %%
 %term
     EOF
@@ -56,16 +57,17 @@ val outs : TextIO.outstream ref = ref (TextIO.openOut "tree.txt")
 	| exp_list of A.exp list
 	| record_fields of (A.symbol * A.exp * A.pos) list
 	| lval of A.var
-        | ty
-        | dec
-        | decs
-        | tydec
-        | fundec
-        | vardec
+        | ty of A.ty
+        | dec of A.dec
+        | decs of A.dec list
+        | tydec of {name: A.symbol, ty:A.ty, pos:A.pos}
+        | fundec of A.fundec
+        | vardec of {name: A.symbol, escape: bool ref, typ: (A.symbol * A.pos) option, init: A.exp, pos: A.pos}
         | typeid 
-        | tyfields 
-        | commatyfields
+        | tyfields of {name: Symbol.symbol, escape: bool ref, typ: Symbol.symbol, pos: pos} list
+        | commatyfields of {name: Symbol.symbol, escape: bool ref, typ: Symbol.symbol, pos: pos} list
         | T
+        | F of 'Z list
         | expExceptNil
 
 %pos int
@@ -80,6 +82,7 @@ val outs : TextIO.outstream ref = ref (TextIO.openOut "tree.txt")
 	DO OF NIL
 
 %prefer THEN ELSE LPAREN
+%right TYPE FUNCTION VAR
 %right SEMICOLON
 %left THEN
 %left ELSE
@@ -154,24 +157,25 @@ lval :
      | lval LBRACK exp RBRACK  (A.SubscriptVar(lval,exp,lvalleft))
 
 decs :
-                                        ()
-    |  T                             ()
+                                        (nil)
+    |  T                                (T)
 
 T : 
-  dec decs                            ()
+  dec decs                            (dec::decs)
 
 
 dec :
-       tydec                               (tydec)
-    | fundec                               (fundec)
-    | vardec                               (vardec)
+       tydec                               (A.TypeDec([tydec]))
+    | fundec                               (A.FunctionDec([fundec]))
+    | vardec                               (A.VarDec(vardec))
 
 
 tydec :
-     TYPE ID EQ ty                     ({name=Symbol.symbol(ID), ty=ty, pos=TYPEleft})
+     TYPE ID EQ ty                    ({name=Symbol.symbol(ID), ty=ty, pos=TYPEleft})
+
 
 fundec :
-       FUNCTION ID LPAREN tyfields RPAREN EQ exp              ({name=Symbol.symbol(ID1), params=tyfields, result=NONE, body=exp, pos=FUNCTIONleft})
+       FUNCTION ID LPAREN tyfields RPAREN EQ exp              ({name=Symbol.symbol(ID), params=tyfields, result=NONE, body=exp, pos=FUNCTIONleft})
      | FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp     ({name=Symbol.symbol(ID1), params=tyfields, result=ID2, body=exp, pos=FUNCTIONleft})
 
 vardec :
@@ -186,13 +190,13 @@ expExceptNil :
       | LET decs IN exp END                  (A.NilExp)
 
 ty :
-    ID                                 ()
-   | LBRACE tyfields RBRACE            ()
-   | ARRAY OF ID                       ()
+    ID                                 (A.NameTy(Symbol.symbol(ID), IDleft))
+   | LBRACE tyfields RBRACE            (A.RecordTy(tyfields))
+   | ARRAY OF ID                       (A.ArrayTy(Symbol.symbol(ID), ARRAYleft))
 
 tyfields :
-     ID COLON ID commatyfields         ()
+     ID COLON ID commatyfields         ({name=Symbol.symbol(ID1), escape=ref true, typ=Symbol.symbol(ID2), pos=IDleft}::commatyfields)
 
 commatyfields : 
-                                        ()
+                                          (nil)
   | COMMA tyfields                        (tyfields)
