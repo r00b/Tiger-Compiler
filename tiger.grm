@@ -90,6 +90,8 @@ val outs : TextIO.outstream ref = ref (TextIO.openOut "tree.txt")
 %nonassoc LT LE GT GE EQ NEQ
 %left PLUS MINUS
 %left TIMES DIVIDE
+
+%left ID
 %left LBRACK
 
 %value ID ("bogus")
