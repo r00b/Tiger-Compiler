@@ -193,9 +193,10 @@ vardec :
 
 
 expExceptNil :
-       ID                                   (A.VarExp(A.SimpleVar(Symbol.symbol(ID), IDleft)))
-      | INT                                  (A.IntExp(INT))
-      | STRING                               (A.StringExp(STRING, STRINGleft))
+    exp                               (case exp of 
+                                            A.NilExp => (print "Error! nil could only be assgined in a long form"; A.NilExp)
+                                          | _ => exp)
+                                                  
 
 ty :
     ID                                 (A.NameTy(Symbol.symbol(ID), IDleft))
