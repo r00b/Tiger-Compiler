@@ -146,6 +146,7 @@ exp :
 					      | _ => A.SeqExp([(exp,expleft),(exp2,exp2left)]))
     | ID LBRACK exp RBRACK OF exp          (A.ArrayExp({typ = Symbol.symbol(ID), size = exp, init = exp2, pos = IDleft}))
     | LET decs IN exp END                  (A.LetExp({decs=groupDecs(decs), body=exp, pos=LETleft}))
+    | NIL                                  (A.NilExp)
 	 
 exp_list :
                                            (nil)
