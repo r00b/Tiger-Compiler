@@ -60,6 +60,7 @@ fun groupDecs (decs) =
   | FUNCTION
   | VAR
   | TYPE
+  | UMINUS
 
 %nonterm
           program of A.exp
@@ -77,6 +78,7 @@ fun groupDecs (decs) =
         | commatyfields of {name: Symbol.symbol, escape: bool ref, typ: Symbol.symbol, pos: A.pos} list
         | T of A.dec list
         | expExceptNil of A.exp
+        | NEGATIVEINT of A.exp
 
 %pos int
 %verbose
@@ -104,6 +106,7 @@ fun groupDecs (decs) =
 
 %left ID
 %left LBRACK
+%left UMINUS
 
 %value ID ("bogus")
 %value INT (1)
@@ -147,6 +150,10 @@ exp :
     | ID LBRACK exp RBRACK OF exp          (A.ArrayExp({typ = Symbol.symbol(ID), size = exp, init = exp2, pos = IDleft}))
     | LET decs IN exp END                  (A.LetExp({decs=groupDecs(decs), body=exp, pos=LETleft}))
     | NIL                                  (A.NilExp)
+    | LPAREN NEGATIVEINT RPAREN            (NEGATIVEINT)
+    
+NEGATIVEINT : 
+     MINUS exp %prec UMINUS                 (A.OpExp({left = A.IntExp(0), oper = A.MinusOp, right = exp, pos = MINUSleft}))
 	 
 exp_list :
                                            (nil)
