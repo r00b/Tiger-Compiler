@@ -115,8 +115,7 @@ program	:
 	  exp      (outs := TextIO.openOut "tree.txt"; P.print(!outs,exp); exp)  
 
 exp :
-      ID                                   (A.VarExp(A.SimpleVar(Symbol.symbol(ID), IDleft)))
-    | INT                                  (A.IntExp(INT))
+      INT                                  (A.IntExp(INT))
     | STRING                               (A.StringExp(STRING, STRINGleft))
     | ID LPAREN exp_list RPAREN            (A.CallExp({func = Symbol.symbol(ID), args = exp_list, pos = IDleft}))
     | exp PLUS exp                         (A.OpExp({left = exp, oper = A.PlusOp, right = exp2, pos = expleft}))
@@ -148,6 +147,7 @@ exp :
     | ID LBRACK exp RBRACK OF exp          (A.ArrayExp({typ = Symbol.symbol(ID), size = exp, init = exp2, pos = IDleft}))
     | LET decs IN exp END                  (A.LetExp({decs=groupDecs(decs), body=exp, pos=LETleft}))
     | NIL                                  (A.NilExp)
+    | lval                                 (A.VarExp(lval))
 	 
 exp_list :
                                            (nil)
