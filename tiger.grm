@@ -106,7 +106,7 @@ fun groupDecs (decs) =
 
 %left ID
 %left LBRACK
-%left UMINUS
+%nonassoc UMINUS
 
 %value ID ("bogus")
 %value INT (1)
@@ -151,7 +151,6 @@ exp :
     | LET decs IN exp END                  (A.LetExp({decs=groupDecs(decs), body=exp, pos=LETleft}))
     | NIL                                  (A.NilExp)
     | lval                                 (A.VarExp(lval))
-    | LPAREN NEGATIVEINT RPAREN            (NEGATIVEINT)
     
 NEGATIVEINT : 
      MINUS exp %prec UMINUS                 (A.OpExp({left = A.IntExp(0), oper = A.MinusOp, right = exp, pos = MINUSleft}))
@@ -159,6 +158,7 @@ NEGATIVEINT :
 exp_list :
                                            (nil)
     | exp                                  (exp::nil)
+    | NEGATIVEINT                          (NEGATIVEINT::nil)
     | exp COMMA exp_list                   (exp::exp_list)
 
 record_fields :
