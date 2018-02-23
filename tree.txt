@@ -1,3 +1,5 @@
-IfExp(
- IntExp(20),
+OpExp(MinusOp,
+ OpExp(PlusOp,
+  IntExp(3),
+  BreakExp),
  IntExp(3))

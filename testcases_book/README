@@ -1,0 +1,11 @@
+Stage: parser
+
+Team member: Robert Steilberg and Tai-Lin Wu
+
+Implementation Details:
+
+Our code is a specification for ML-YACC to build a Tiger parser using a lexer created by ML-LEX.
+
+1. LET: For `let` clauses, we take care of mutual recursion of `FunctionDec` and `TypeDec`
+with groupDecs function. For `VarDec`, we create an extra non-terminal, 
+`expExceptNil`, to prevent a variable of record type is declared with value `NIL`.
