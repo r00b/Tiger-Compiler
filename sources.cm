@@ -7,7 +7,8 @@ table.sig
 table.sml
 symbol.sml
 parse.sml
-tiger.lex
+main.sml
+tiger.lex.sml
 tiger.grm
 translate.sml
 types.sml
