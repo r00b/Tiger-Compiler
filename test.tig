@@ -1,1 +1,5 @@
-x := a[0]
+let
+  var va : a := 3
+in
+  va + 3
+end

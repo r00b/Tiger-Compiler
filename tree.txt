@@ -1,5 +1,7 @@
-OpExp(MinusOp,
+LetExp([
+ VarDec(va,true,SOME(a),
+  IntExp(3))],
  OpExp(PlusOp,
-  IntExp(3),
-  BreakExp),
- IntExp(3))
+  VarExp(
+   SimpleVar(va)),
+  IntExp(3)))
