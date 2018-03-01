@@ -1,4 +1,9 @@
-structure Main : sig val typeCheck : string -> unit  end =
+
+structure Main:
+sig
+  val compile: string -> unit
+end =
 struct
-  fun typeCheck filename = Semant.transProg (Parse.parse filename)
+  fun compile filename =
+    Semant.transProg (Parse.parse filename)
 end
