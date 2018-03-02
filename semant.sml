@@ -1,4 +1,11 @@
-structure SEMANT : sig
+signature SEMANT =
+sig
+  type venv 
+  type tenv
+  type expty
+  type exp
+
+  val transProg: exp -> unit
   (* type venv = Env.enventry Symbol.table
   type tenv = Types.ty Symbol.table
   type expty = {exp: Translate.exp, ty: Types.ty}
@@ -7,10 +14,16 @@ structure SEMANT : sig
   val transExp: venv * tenv * Absyn.exp -> expty
   val transDec: venv * tenv * Absyn.dec -> {venv: venv, tenv: tenv}
   val transTy:         tenv * Absyn.ty  -> Types.ty *)
-  val transProg: Absyn.exp -> unit
-end =
-struct
+end
 
-fun transProg tree = ()
+structure Semant : SEMANT =
+struct
+  structure A = Absyn
+  type venv = Env.enventry Symbol.table
+  type tenv = Types.ty Symbol.table
+  type expty = {exp: Translate.exp, ty: Types.ty}
+  type exp = A.exp
+
+  fun transProg tree = ()
 
 end
