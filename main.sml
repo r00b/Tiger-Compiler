@@ -5,5 +5,5 @@ sig
 end =
 struct
   fun compile filename =
-    SEMANT.transProg (Parse.parse filename)
+    Semant.transProg (Parse.parse filename)
 end
