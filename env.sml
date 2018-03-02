@@ -15,10 +15,17 @@ struct
                     | FunEntry of {formals: ty list, result: ty}
 
   structure S = Symbol
+  structure T = Types
 
-  val base_tenv : ty Symbol.table = S.empty
+  val baseTypes = [
+    ("string", T.STRING),
+    ("int", T.INT)
+  ]
+
+  fun addTy((name, ty), env) = S.enter(env, S.symbol name, ty)
+
+  val base_tenv : ty Symbol.table = foldl addTy S.empty baseTypes
   val base_venv : enventry Symbol.table = S.empty
-
 
 
 end
