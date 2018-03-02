@@ -14,7 +14,6 @@ translate.sml
 types.sml
 env.sml
 semant.sml
-main.sml
 $/smlnj-lib.cm
 $/ml-yacc-lib.cm
 $/basis.cm
