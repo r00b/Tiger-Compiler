@@ -27,24 +27,23 @@ struct
   fun checkInt ({exp=X, ty=Y}, pos) = case Y of
                                            Types.INT => ()
                                          | _ => print "Typecon mismatch"
+  
+  fun intOper ({left=lexp, oper=operation, right=rexp, pos=p}, f) = case operation of
+                A.PlusOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
+              | A.MinusOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
+              | A.TimesOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
+              | A.DivideOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
+              | A.EqOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
+              | A.NeqOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
+              | A.LtOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
+              | A.LeOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
+              | A.GtOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
+              | A.GeOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
 
   fun transExp(venv, tenv, exp) =
     let fun trexp exp =
       case exp of
-          A.OpExp({left=lexp, oper=operation, right=rexp, pos=p}) =>
-            (
-            case operation of
-                A.PlusOp => (checkInt(trexp lexp, p); checkInt(trexp rexp, p); {exp=(), ty=Types.INT})
-              | A.MinusOp => (checkInt(trexp lexp, p); checkInt(trexp rexp, p); {exp=(), ty=Types.INT})
-              | A.TimesOp => (checkInt(trexp lexp, p); checkInt(trexp rexp, p); {exp=(), ty=Types.INT})
-              | A.DivideOp => (checkInt(trexp lexp, p); checkInt(trexp rexp, p); {exp=(), ty=Types.INT})
-              | A.EqOp => (checkInt(trexp lexp, p); checkInt(trexp rexp, p); {exp=(), ty=Types.INT})
-              | A.NeqOp => (checkInt(trexp lexp, p); checkInt(trexp rexp, p); {exp=(), ty=Types.INT})
-              | A.LtOp => (checkInt(trexp lexp, p); checkInt(trexp rexp, p); {exp=(), ty=Types.INT})
-              | A.LeOp => (checkInt(trexp lexp, p); checkInt(trexp rexp, p); {exp=(), ty=Types.INT})
-              | A.GtOp => (checkInt(trexp lexp, p); checkInt(trexp rexp, p); {exp=(), ty=Types.INT})
-              | A.GeOp => (checkInt(trexp lexp, p); checkInt(trexp rexp, p); {exp=(), ty=Types.INT})
-            )
+          A.OpExp(x) => intOper (x, trexp)
         | A.IntExp(num) => {exp=(), ty=Types.INT}
         | _ => (print "errors. not matching any typs"; {exp=(), ty=Types.UNIT})
     in
