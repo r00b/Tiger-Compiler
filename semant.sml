@@ -24,6 +24,29 @@ struct
   type expty = {exp: Translate.exp, ty: Types.ty}
   type exp = A.exp
 
-  fun transProg tree = ()
+  fun checkInt ({exp=X, ty=Y}, pos) = case Y of
+                                           Types.INT => ()
+                                         | _ => print "Typecon mismatch"
+
+  fun transExp(venv, tenv, exp) =
+    let fun trexp exp =
+      case exp of
+          A.OpExp({left=lexp, oper=operation, right=rexp, pos=p}) =>
+            (case operation of
+                A.PlusOp => (checkInt(trexp lexp, p); checkInt(trexp rexp, p); {exp=(), ty=Types.INT})
+              | _ => (print"TODO" ; {exp=(), ty=Types.INT}))
+        | A.IntExp(num) => {exp=(), ty=Types.INT}
+        | _ => (print "errors. not matching any typs"; {exp=(), ty=Types.UNIT})
+    in
+      (trexp(exp); ())
+    end
+
+
+  fun transProg exp =
+    let val venv = Env.base_venv
+        val tenv = Env.base_tenv
+    in
+      (transExp(venv, tenv, exp) ;())
+    end
 
 end
