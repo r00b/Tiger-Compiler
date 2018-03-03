@@ -45,6 +45,7 @@ struct
       case exp of
           A.OpExp(x) => intOper (x, trexp)
         | A.IntExp(num) => {exp=(), ty=Types.INT}
+        | A.StringExp((s,p)) => {exp=(), ty=Types.STRING}
         | _ => (print "errors. not matching any typs"; {exp=(), ty=Types.UNIT})
     in
       (trexp(exp); ())
