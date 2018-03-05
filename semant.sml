@@ -43,7 +43,7 @@ struct
   fun transExp(venv, tenv, exp) =
     let fun trexp exp =
       case exp of
-          A.OpExp(x) => intOper (x, trexp)
+          A.OpExp(x) => intOper (x, trexp) (*TODO*)
         | A.IntExp(num) => {exp=(), ty=Types.INT}
         | A.StringExp((s,p)) => {exp=(), ty=Types.STRING}
         | _ => (print "errors. not matching any typs"; {exp=(), ty=Types.UNIT})
