@@ -19,14 +19,14 @@ end
 structure Semant : SEMANT =
 struct
   structure A = Absyn
+  structure T = Types
   type venv = Env.enventry Symbol.table
   type tenv = Types.ty Symbol.table
   type expty = {exp: Translate.exp, ty: Types.ty}
   type exp = A.exp
 
-  fun checkInt ({exp=X, ty=Y}, pos) = case Y of
-                                           Types.INT => ()
-                                         | _ => print "Typecon mismatch"
+  fun checkInt ({exp=X, ty=Y}, pos) = if Y = Types.INT then ()
+                                      else ErrorMsg.error pos "Expecting INT."
   
   fun intOper ({left=lexp, oper=operation, right=rexp, pos=p}, f) = case operation of
                 A.PlusOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
@@ -40,15 +40,24 @@ struct
               | A.GtOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
               | A.GeOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
 
+  fun tyEq (t1: expty, t2: expty): bool = t1 = t2
+
   fun transExp(venv, tenv, exp) =
     let fun trexp exp =
       case exp of
           A.OpExp(x) => intOper (x, trexp) (*TODO*)
         | A.IntExp(num) => {exp=(), ty=Types.INT}
         | A.StringExp((s,p)) => {exp=(), ty=Types.STRING}
-        | _ => (print "errors. not matching any typs"; {exp=(), ty=Types.UNIT})
+        | A.IfExp({test=cond, then'=thenExp, else'=NONE, pos=p}) =>
+            (
+             case (checkInt(trexp cond, p), tyEq(trexp thenExp, {exp=(), ty=T.UNIT})) 
+              of ((), true) => {exp=(), ty=T.UNIT} 
+               | ((), false) => (ErrorMsg.error p "thenExp returns values.";
+               {exp=(), ty=T.UNIT})
+            )
+        | _ => (ErrorMsg.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT})
     in
-      (trexp(exp); ())
+      trexp exp
     end
 
   fun transProg exp =
