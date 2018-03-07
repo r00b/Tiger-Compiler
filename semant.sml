@@ -6,12 +6,12 @@ sig
   type exp
 
   val transProg: exp -> unit
+  val transExp: venv * tenv * exp -> expty
   (* type venv = Env.enventry Symbol.table
   type tenv = Types.ty Symbol.table
   type expty = {exp: Translate.exp, ty: Types.ty}
 
-  (* val transVar: venv * tenv * Absyn.var -> expty *)
-  val transExp: venv * tenv * Absyn.exp -> expty
+  val transVar: venv * tenv * Absyn.var -> expty
   val transDec: venv * tenv * Absyn.dec -> {venv: venv, tenv: tenv}
   val transTy:         tenv * Absyn.ty  -> Types.ty *)
 end
@@ -27,7 +27,7 @@ struct
   fun checkInt ({exp=X, ty=Y}, pos) = case Y of
                                            Types.INT => ()
                                          | _ => print "Typecon mismatch"
-  
+
   fun intOper ({left=lexp, oper=operation, right=rexp, pos=p}, f) = case operation of
                 A.PlusOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
               | A.MinusOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
