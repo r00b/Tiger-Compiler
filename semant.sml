@@ -58,7 +58,7 @@ struct
         | A.IntExp(num) => {exp=(), ty=Types.INT}
         | A.StringExp((s,p)) => {exp=(), ty=Types.STRING}
         | A.IfExp({test=cond, then'=thenExp, else'=elseExp, pos=p}) =>
-            (case elseExp of
+            (case elseExp of (*TODO return value*)
                   NONE => (checkInt(trexp cond, p);
                   checkIfExp(trexp thenExp, {exp=(), ty=T.UNIT}, p))
                 | SOME v => (checkInt(trexp cond, p);
