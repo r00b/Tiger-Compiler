@@ -66,7 +66,13 @@ struct
                   checkIfExp(trexp thenExp, trexp v, p)))
         | A.SeqExp(x) => if List.length x = 0 then {exp=(), ty=T.UNIT}
                          else trexp (case List.last (x) of (v, pos) => v)
-        | _ => (ErrorMsg.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT})
+        | A.WhileExp{test=exp, body=exp2, pos=p} =>
+            (checkInt(trexp exp, p);
+            if tyNeq(trexp exp2, {exp=(), ty=T.UNIT})
+            then ErrorMsg.error p "While produces values"
+            else ();
+            {exp=(), ty=T.UNIT})
+        | _ => (ErrorMsg.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT}) (* redundant? *)
     in
       trexp exp
     end
