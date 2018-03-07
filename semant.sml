@@ -25,6 +25,9 @@ struct
   type expty = {exp: Translate.exp, ty: Types.ty}
   type exp = A.exp
 
+  fun tyEq (t1: expty, t2: expty): bool = t1 = t2
+  fun tyNeq (t1: expty, t2: expty): bool = t1 <> t2
+
   fun checkInt ({exp=X, ty=Y}, pos) = if Y = Types.INT then ()
                                       else ErrorMsg.error pos "Expecting INT."
   
@@ -39,8 +42,6 @@ struct
               | A.LeOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
               | A.GtOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
               | A.GeOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-
-  fun tyEq (t1: expty, t2: expty): bool = t1 = t2
 
   fun checkIfExp (ty, expectedTy, p) =
     case expectedTy of
