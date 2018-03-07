@@ -63,6 +63,8 @@ struct
                   checkIfExp(trexp thenExp, {exp=(), ty=T.UNIT}, p))
                 | SOME v => (checkInt(trexp cond, p);
                   checkIfExp(trexp thenExp, trexp v, p)))
+        | A.SeqExp(x) => if List.length x = 0 then {exp=(), ty=T.UNIT}
+                         else trexp (case List.last (x) of (v, pos) => v)
         | _ => (ErrorMsg.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT})
     in
       trexp exp
