@@ -42,19 +42,27 @@ struct
 
   fun tyEq (t1: expty, t2: expty): bool = t1 = t2
 
+  fun checkIfExp (ty, expectedTy, p) =
+    case expectedTy of
+         {exp=(), ty=T.UNIT} => if tyEq(ty, {exp=(), ty=T.UNIT}) then {exp=(), ty=T.UNIT}
+                   else (ErrorMsg.error p "thenExp returns values."; {exp=(),
+                   ty=T.UNIT})
+       | ty2 => if tyEq(ty, ty2) then ty (* TODO *)
+                   else (ErrorMsg.error p "thenExp returns different types from\
+                   \elseExp."; {exp=(), ty=T.UNIT})
+
   fun transExp(venv, tenv, exp) =
     let fun trexp exp =
       case exp of
-          A.OpExp(x) => intOper (x, trexp) (*TODO*)
+          A.OpExp(x) => intOper (x, trexp) (*TODO fix string/array comparison*)
         | A.IntExp(num) => {exp=(), ty=Types.INT}
         | A.StringExp((s,p)) => {exp=(), ty=Types.STRING}
-        | A.IfExp({test=cond, then'=thenExp, else'=NONE, pos=p}) =>
-            (
-             case (checkInt(trexp cond, p), tyEq(trexp thenExp, {exp=(), ty=T.UNIT})) 
-              of ((), true) => {exp=(), ty=T.UNIT} 
-               | ((), false) => (ErrorMsg.error p "thenExp returns values.";
-               {exp=(), ty=T.UNIT})
-            )
+        | A.IfExp({test=cond, then'=thenExp, else'=elseExp, pos=p}) =>
+            (case elseExp of
+                  NONE => (checkInt(trexp cond, p);
+                  checkIfExp(trexp thenExp, {exp=(), ty=T.UNIT}, p))
+                | SOME v => (checkInt(trexp cond, p);
+                  checkIfExp(trexp thenExp, trexp v, p)))
         | _ => (ErrorMsg.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT})
     in
       trexp exp
