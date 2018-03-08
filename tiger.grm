@@ -18,56 +18,22 @@ fun groupDecs (decs) =
 %term
     EOF
   | ID of string
-  | INT of int
-  | STRING of string
-  | COMMA
-  | COLON
-  | SEMICOLON
-  | LPAREN
-  | RPAREN
-  | LBRACK
-  | RBRACK
-  | LBRACE
-  | RBRACE
-  | DOT
-  | PLUS
-  | MINUS
-  | TIMES
-  | DIVIDE
-  | EQ
-  | NEQ
-  | LT
-  | LE
-  | GT
-  | GE
-  | AND
-  | OR
-  | ASSIGN
-  | ARRAY
-  | IF
-  | THEN
-  | ELSE
-  | WHILE
-  | FOR
-  | TO
-  | DO
-  | LET
-  | IN
-  | END
-  | OF
-  | BREAK
-  | NIL
-  | FUNCTION
-  | VAR
-  | TYPE
+  | INT of int | STRING of string
+  | COMMA | COLON | SEMICOLON | LPAREN | RPAREN | LBRACK | RBRACK
+  | LBRACE | RBRACE | DOT
+  | PLUS | MINUS | TIMES | DIVIDE | EQ | NEQ | LT | LE | GT | GE
+  | AND | OR | ASSIGN
+  | ARRAY | IF | THEN | ELSE | WHILE | FOR | TO | DO | LET | IN | END | OF
+  | BREAK | NIL
+  | FUNCTION | VAR | TYPE
   | UMINUS
 
 %nonterm
           program of A.exp
         | exp of A.exp
-	| exp_list of A.exp list
-	| record_fields of (A.symbol * A.exp * A.pos) list
-	| lval of A.var
+	      | exp_list of A.exp list
+	      | record_fields of (A.symbol * A.exp * A.pos) list
+	      | lval of A.var
         | ty of A.ty
         | dec of A.dec
         | decs of A.dec list
@@ -79,6 +45,7 @@ fun groupDecs (decs) =
         | T of A.dec list
         | expExceptNil of A.exp
         | NEGATIVEINT of A.exp
+        | option_exp of A.exp
 
 %pos int
 %verbose
@@ -148,12 +115,16 @@ exp :
 					      |	A.SeqExp(exps) => A.SeqExp((exp, expleft)::exps)
 					      | _ => A.SeqExp([(exp,expleft),(exp2,exp2left)]))
     | ID LBRACK exp RBRACK OF exp          (A.ArrayExp({typ = Symbol.symbol(ID), size = exp, init = exp2, pos = IDleft}))
-    | LET decs IN exp END                  (A.LetExp({decs=groupDecs(decs), body=exp, pos=LETleft}))
+    | LET decs IN option_exp END                  (A.LetExp({decs=groupDecs(decs), body=option_exp, pos=LETleft}))
     | NIL                                  (A.NilExp)
     | lval                                 (A.VarExp(lval))
 
 NEGATIVEINT :
      MINUS exp %prec UMINUS                 (A.OpExp({left = A.IntExp(0), oper = A.MinusOp, right = exp, pos = MINUSleft}))
+
+option_exp :
+                                        (A.NilExp)
+    | exp                               (exp)
 
 exp_list :
                                            (nil)

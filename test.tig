@@ -2,5 +2,4 @@ let
   var va := nil
   var vb : a := nil
 in
-  4 + 4
 end
