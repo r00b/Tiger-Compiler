@@ -1,5 +1,6 @@
 let
-  var va : a := 3
+  var va := nil
+  var vb : a := nil
 in
-  va + 3
+  4 + 4
 end

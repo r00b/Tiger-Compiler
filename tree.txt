@@ -1,7 +1,12 @@
 LetExp([
- VarDec(va,true,SOME(a),
-  IntExp(3))],
- OpExp(PlusOp,
-  VarExp(
-   SimpleVar(va)),
-  IntExp(3)))
+ VarDec(va,true,NONE,
+  NilExp),
+ VarDec(vb,true,SOME(a),
+  NilExp)],
+ SeqExp[
+  OpExp(PlusOp,
+   IntExp(3),
+   IntExp(3)),
+  OpExp(PlusOp,
+   IntExp(3),
+   IntExp(5))])
