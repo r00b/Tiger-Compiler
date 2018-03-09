@@ -94,10 +94,21 @@ struct
     in
       trexp exp
     end
-  and transDec(A.VarDec{name, escape=False, typ=NONE, init, pos}, {venv, tenv}) =
+  and transDec(A.VarDec{name, escape=ref True, typ=NONE, init, pos}, {venv, tenv}) =
       let val {exp, ty} = transExp (venv, tenv, init)
       in
         {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
+      end
+    | transDec(A.VarDec{name, escape=ref True, typ=SOME (symbol,p), init, pos}, {venv, tenv}) =
+      let val {exp, ty} = transExp (venv, tenv, init)
+          val isSameTy = case S.look(tenv, symbol) of
+                            NONE => (ErrorMsg.error pos "Cannot find the type"; false)
+                          | SOME t => tyEq({exp=(), ty=t}, {exp=(), ty=ty})
+      in
+        case isSameTy of
+           true => {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
+         | false => (ErrorMsg.error pos ("tycon mistach");
+                     {venv=venv, tenv=tenv})
       end
 
 
