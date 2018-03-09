@@ -1,18 +1,16 @@
 signature ENV =
 sig
   (* type access *)
-  type ty
-  datatype enventry = VarEntry of {ty: ty}
-                    | FunEntry of {formals: ty list, result: ty}
-  val base_tenv : ty Symbol.table       (* predefined types *)
+  datatype enventry = VarEntry of {ty: Types.ty}
+                    | FunEntry of {formals: Types.ty list, result: Types.ty}
+  val base_tenv : Types.ty Symbol.table       (* predefined types *)
   val base_venv : enventry Symbol.table (* predefined functions *)
 end
 
 structure Env :> ENV =
 struct
-  type ty = Types.ty
-  datatype enventry = VarEntry of {ty: ty}
-                    | FunEntry of {formals: ty list, result: ty}
+  datatype enventry = VarEntry of {ty: Types.ty}
+                    | FunEntry of {formals: Types.ty list, result: Types.ty}
 
   structure S = Symbol
   structure T = Types
@@ -37,7 +35,7 @@ struct
 
   fun addTy((name, ty), env) = S.enter(env, S.symbol name, ty)
 
-  val base_tenv : ty Symbol.table = foldl addTy S.empty baseTypes
+  val base_tenv : Types.ty Symbol.table = foldl addTy S.empty baseTypes
   val base_venv : enventry Symbol.table = foldl addTy S.empty baseFunctions
 
 

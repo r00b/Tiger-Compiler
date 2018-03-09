@@ -11,8 +11,8 @@ sig
   type tenv = Types.ty Symbol.table
   type expty = {exp: Translate.exp, ty: Types.ty}
 
-  val transVar: venv * tenv * Absyn.var -> expty
   val transDec: venv * tenv * Absyn.dec -> {venv: venv, tenv: tenv}
+  val transVar: venv * tenv * Absyn.var -> expty
   val transTy:         tenv * Absyn.ty  -> Types.ty *)
 end
 
@@ -20,6 +20,8 @@ structure Semant : SEMANT =
 struct
   structure A = Absyn
   structure T = Types
+  structure S = Symbol
+  structure E = Env
   type venv = Env.enventry Symbol.table
   type tenv = Types.ty Symbol.table
   type expty = {exp: Translate.exp, ty: Types.ty}
@@ -72,10 +74,21 @@ struct
             then ErrorMsg.error p "While produces values"
             else ();
             {exp=(), ty=T.UNIT})
+        | A.LetExp{decs, body, pos} =>
+            let val {venv=venv', tenv=tenv'} = foldl transDec {venv=venv, tenv=tenv} decs
+            in
+              transExp (venv', tenv', body)
+            end
         | _ => (ErrorMsg.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT}) (* redundant? *)
     in
       trexp exp
     end
+  and transDec(A.VarDec{name, escape=False, typ=NONE, init, pos}, {venv, tenv}) =
+      let val {exp, ty} = transExp (venv, tenv, init)
+      in
+        {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
+      end
+
 
   fun transProg exp =
     let val venv = Env.base_venv
