@@ -8,7 +8,7 @@ sig
   val base_venv : enventry Symbol.table (* predefined functions *)
 end
 
-structure Env :> ENV =
+structure Env : ENV =
 struct
   type ty = Types.ty
   datatype enventry = VarEntry of {ty: ty}
