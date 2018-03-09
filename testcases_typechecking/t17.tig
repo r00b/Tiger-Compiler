@@ -1,0 +1,7 @@
+let 
+  var v := 10
+  var v2: int := 10
+in
+   5
+end
+
