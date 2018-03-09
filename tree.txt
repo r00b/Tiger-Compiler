@@ -1,7 +1,3 @@
-LetExp([
- VarDec(va,true,SOME(a),
-  IntExp(3))],
- OpExp(PlusOp,
-  VarExp(
-   SimpleVar(va)),
-  IntExp(3)))
+AssignExp(
+ SimpleVar(a),
+ IntExp(1))

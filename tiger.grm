@@ -4,7 +4,7 @@ structure P = PrintAbsyn
 val outs : TextIO.outstream ref = ref (TextIO.openOut "tree.txt")
 
 fun groupDecs (decs) =
-    let fun helper (dec, []) = dec::nil 
+    let fun helper (dec, []) = dec::nil
           | helper (dec, a) = case (dec, List.hd(a)) of
                                 (A.FunctionDec(v1), A.FunctionDec(v2)) => A.FunctionDec(List.hd (v1) ::v2)::List.tl(a)
                               | (A.TypeDec(v1), A.TypeDec(v2)) => A.TypeDec(List.hd(v1)::v2)::List.tl(a)
@@ -88,7 +88,7 @@ fun groupDecs (decs) =
 
 %name Tiger
 
-%keyword WHILE FOR TO BREAK LET IN END FUNCTION VAR TYPE ARRAY IF THEN ELSE 
+%keyword WHILE FOR TO BREAK LET IN END FUNCTION VAR TYPE ARRAY IF THEN ELSE
 	DO OF NIL
 
 %prefer THEN ELSE LPAREN
@@ -115,7 +115,7 @@ fun groupDecs (decs) =
 %%
 
 program	:
-	  exp      (outs := TextIO.openOut "tree.txt"; P.print(!outs,exp); exp)  
+	  exp      (outs := TextIO.openOut "tree.txt"; P.print(!outs,exp); exp)
 
 exp :
       INT                                  (A.IntExp(INT))
@@ -151,8 +151,8 @@ exp :
     | LET decs IN exp END                  (A.LetExp({decs=groupDecs(decs), body=exp, pos=LETleft}))
     | NIL                                  (A.NilExp)
     | lval                                 (A.VarExp(lval))
-    
-NEGATIVEINT : 
+
+NEGATIVEINT :
      MINUS exp %prec UMINUS                 (A.OpExp({left = A.IntExp(0), oper = A.MinusOp, right = exp, pos = MINUSleft}))
 
 exp_list :
@@ -176,7 +176,7 @@ decs :
                                            (nil)
     |  T                                   (T)
 
-T : 
+T :
   dec decs                                 (dec::decs)
 
 dec :
@@ -192,15 +192,9 @@ fundec :
      | FUNCTION ID LPAREN tyfields RPAREN COLON ID EQ exp     ({name=Symbol.symbol(ID1), params=tyfields, result=SOME((Symbol.symbol(ID2), ID2left)), body=exp, pos=FUNCTIONleft})
 
 vardec :
-       VAR ID ASSIGN expExceptNil          ({name=Symbol.symbol(ID), escape=ref true, typ=NONE, init=expExceptNil, pos=VARleft})
+       VAR ID ASSIGN exp                   ({name=Symbol.symbol(ID), escape=ref true, typ=NONE, init=exp, pos=VARleft})
      | VAR ID COLON ID ASSIGN exp          ({name=Symbol.symbol(ID1), escape=ref true, typ=SOME((Symbol.symbol(ID2), ID2left)), init=exp, pos=VARleft})
 
-
-expExceptNil :
-    exp                                    (case exp of 
-                                                 A.NilExp => (print "Error! nil could only be assgined in a long form"; A.NilExp)
-                                               | _ => exp)
-                                                  
 ty :
     ID                                     (A.NameTy(Symbol.symbol(ID), IDleft))
    | LBRACE tyfields RBRACE                (A.RecordTy(tyfields))
@@ -210,6 +204,6 @@ tyfields :
                                            (nil)
   | ID COLON ID commatyfields             ({name=Symbol.symbol(ID1), escape=ref true, typ=Symbol.symbol(ID2), pos=IDleft}::commatyfields)
 
-commatyfields : 
+commatyfields :
                                            (nil)
   | COMMA tyfields                         (tyfields)
