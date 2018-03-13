@@ -1,10 +1,12 @@
-/* Ilegal cyclic type declarations */
-let 
+/* transTy/transDec
+
+Ilegal cyclic type declarations */
+let
   type a = int
   type b = a
   type c = b
   type a = c
-in 
+in
   5
 end
 

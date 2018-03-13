@@ -1,4 +1,7 @@
-let 
+/*  LetExp
+  assignment without types
+ */
+let
   var v := 10
 in
    5

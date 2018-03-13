@@ -1,4 +1,7 @@
-let 
+/*  LetExp
+  assignment with types (expecting errors as LOVE is not defined.)
+ */
+let
   var v := 10
   var v2: LOVE := 10
 in

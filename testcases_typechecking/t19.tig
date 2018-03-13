@@ -1,6 +1,7 @@
-/* should report error as INT2 is not defined previously */
-let 
+/*  transDec/transTy
+should report error as INT2 is not defined previously */
+let
   type a = INT2
-in 
+in
   5
 end
