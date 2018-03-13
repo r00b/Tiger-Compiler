@@ -1,0 +1,6 @@
+let
+  type rec = {a: int, b: string}
+in
+  5
+end
+
