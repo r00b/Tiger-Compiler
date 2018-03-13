@@ -52,6 +52,20 @@ struct
        | ty2 => if tyEq(ty, ty2) then ty (* TODO *)
                    else (ErrorMsg.error p "thenExp returns different types from elseExp."; {exp=(), ty=T.UNIT})
 
+  fun transTy (tenv: tenv, ty: A.ty): T.ty =
+    case ty of
+       A.NameTy(symbol, pos) => case S.look(tenv, symbol) of 
+                                   SOME v => T.NAME(symbol, ref (SOME v))
+                                 | NONE => (ErrorMsg.error pos ("Cannot find type\
+                                 \: " ^ S.name(symbol)); T.UNIT)
+
+  fun  iterTransTy (tylist, {venv, tenv})= 
+    let fun helper ({name, ty, pos}, {venv, tenv}) = {venv=venv, tenv=S.enter(tenv,
+    name, transTy(tenv, ty))}
+    in
+      foldl helper {venv=venv, tenv=tenv} tylist
+    end
+
   fun transExp(venv, tenv, exp) =
     let
       fun trexp exp =
@@ -94,23 +108,24 @@ struct
     in
       trexp exp
     end
-  and transDec(A.VarDec{name, escape=ref True, typ=NONE, init, pos}, {venv, tenv}) =
+  and transDec(A.VarDec{name, escape=ref True, typ=NONE, init, pos}, {venv,
+  tenv}) = 
       let val {exp, ty} = transExp (venv, tenv, init)
       in
         {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
       end
-    | transDec(A.VarDec{name, escape=ref True, typ=SOME (symbol,p), init, pos}, {venv, tenv}) =
+    | transDec(A.VarDec{name, escape=ref True, typ=SOME (symbol,p), init, pos},
+    {venv, tenv}) = 
       let val {exp, ty} = transExp (venv, tenv, init)
           val isSameTy = case S.look(tenv, symbol) of
-                            NONE => (ErrorMsg.error pos "Cannot find the type"; false)
+                            NONE => (ErrorMsg.error pos ("Cannot find the type:"
+                            ^ S.name(symbol)); false)
                           | SOME t => tyEq({exp=(), ty=t}, {exp=(), ty=ty})
       in
-        case isSameTy of
-           true => {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
-         | false => (ErrorMsg.error pos ("tycon mistach");
-                     {venv=venv, tenv=tenv})
+        (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
+        else (ErrorMsg.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
       end
-
+   | transDec(A.TypeDec(tylist), {venv, tenv}) = iterTransTy(tylist, {venv=venv, tenv=tenv})
 
   fun transProg exp =
     let val venv = Env.base_venv
