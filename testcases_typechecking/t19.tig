@@ -1,23 +1,6 @@
-/* testing for transDec and transTy 
-  Support the declaration of array type
-
-  Type checking to note: 
-     For the line `type arrInt = array of int`, 
-       (1) the type after "array of" should exist in tenv
-       Thus, array of INT should report errors
-
-     In the line `var a: arrInt := arrInt [N] of 0`, 
-       (1) first check `arrInt` and arrINT exist in tenv
-       (2) check arrInt == arrINT 
-       (3) the size of the array, here N, should be integer.
-       (4) the default value after `[N] of` should equals that 
-       defines in `type arrInt = array of int` <- int here
-*/
-let
-  type arrInt = array of int
-
-  var N: int = 5  
-  var a: arrInt := arrINT [N] of 0
+/* should report error as INT2 is not defined previously */
+let 
+  type a = INT2
 in 
-  a
+  5
 end
