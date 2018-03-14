@@ -1,0 +1,5 @@
+let
+  type arrint = array of LOVE
+in
+  5
+end

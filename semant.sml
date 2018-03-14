@@ -54,10 +54,16 @@ struct
 
   fun transTy (tenv: tenv, ty: A.ty): T.ty =
     case ty of
-       A.NameTy(symbol, pos) => case S.look(tenv, symbol) of 
+       A.NameTy(symbol, pos) => (case S.look(tenv, symbol) of 
                                    SOME v => T.NAME(symbol, ref (SOME v))
                                  | NONE => (ErrorMsg.error pos ("Cannot find type\
-                                 \: " ^ S.name(symbol)); T.UNIT)
+                                 \: " ^ S.name(symbol)); T.UNIT))
+     | A.ArrayTy(symbol, pos) => (case S.look(tenv, symbol) of 
+                                   SOME v => T.ARRAY(v, ref ())
+                                 | NONE => (ErrorMsg.error pos ("Cannot find type\
+                                 \: " ^ S.name(symbol) ^ " in array declaration"); 
+                                 T.UNIT))
+
 
   fun  iterTransTy (tylist, {venv, tenv})= 
     let fun helper ({name, ty, pos}, {venv, tenv}) = {venv=venv, tenv=S.enter(tenv,
