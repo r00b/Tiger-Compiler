@@ -1,0 +1,9 @@
+/*  LetExp/transDec
+  Without type information, nil cannot be assigned in a variable declaration.
+ */
+let
+  var v := nil
+in
+   5
+end
+

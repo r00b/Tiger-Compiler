@@ -73,10 +73,6 @@ struct
     in
       map (helper tenv) symTyPairs
     end
-                                 
-
-
-
 
   fun  iterTransTy (tylist, {venv, tenv})= 
     let fun helper ({name, ty, pos}, {venv, tenv}) = {venv=venv, tenv=S.enter(tenv,
@@ -128,11 +124,13 @@ struct
       trexp exp
     end
   and transDec(A.VarDec{name, escape=ref True, typ=NONE, init, pos}, {venv,
-  tenv}) = 
-      let val {exp, ty} = transExp (venv, tenv, init)
-      in
-        {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
-      end
+  tenv}) = (case init of
+              A.NilExp => (ErrorMsg.error pos "NIL is not allowed\
+            \ without specifying types in variable declarations";
+            {venv=venv, tenv=tenv})
+            | otherExp => let val {exp, ty} = transExp (venv, tenv, otherExp)
+                          in {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
+                          end)
     | transDec(A.VarDec{name, escape=ref True, typ=SOME (symbol,p), init, pos},
     {venv, tenv}) = 
       let val {exp, ty} = transExp (venv, tenv, init)
