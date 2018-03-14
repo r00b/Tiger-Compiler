@@ -63,6 +63,19 @@ struct
                                  | NONE => (ErrorMsg.error pos ("Cannot find type\
                                  \: " ^ S.name(symbol) ^ " in array declaration"); 
                                  T.UNIT))
+     | A.RecordTy(symTyPairs) => T.RECORD(tyCheckRecord(symTyPairs, tenv), ref ())
+  and tyCheckRecord(symTyPairs, tenv) = 
+    let fun helper tenv {name, escape, typ, pos} = 
+          case S.look(tenv, typ) of 
+             SOME v => (name, v)
+           | NONE => (ErrorMsg.error pos ("Cannot find type\
+           \: " ^ S.name(typ) ^ " in record field declaration"); (name, T.UNIT))
+    in
+      map (helper tenv) symTyPairs
+    end
+                                 
+
+
 
 
   fun  iterTransTy (tylist, {venv, tenv})= 
