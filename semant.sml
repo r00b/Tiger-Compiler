@@ -57,6 +57,16 @@ struct
        | ty2 => if tyEq(ty, ty2) then ty (* TODO *)
                    else (ErrorMsg.error p "thenExp returns different types from elseExp."; {exp=(), ty=T.UNIT})
 
+  fun tyCheckRecord(symTyPairs, tenv) =
+    let fun helper tenv {name, escape, typ, pos} =
+          case S.look(tenv, typ) of
+             SOME v => (name, v)
+           | NONE => (ErrorMsg.error pos ("Cannot find type\
+           \: " ^ S.name(typ) ^ " in record field declaration"); (name, T.UNIT))
+    in
+      map (helper tenv) symTyPairs
+    end
+
   fun transTy (tenv: tenv, ty: A.ty): T.ty =
     case ty of
        A.NameTy(symbol, pos) => (case S.look(tenv, symbol) of 
@@ -69,17 +79,8 @@ struct
                                  \: " ^ S.name(symbol) ^ " in array declaration"); 
                                  T.UNIT))
      | A.RecordTy(symTyPairs) => T.RECORD(tyCheckRecord(symTyPairs, tenv), ref ())
-  and tyCheckRecord(symTyPairs, tenv) = 
-    let fun helper tenv {name, escape, typ, pos} = 
-          case S.look(tenv, typ) of 
-             SOME v => (name, v)
-           | NONE => (ErrorMsg.error pos ("Cannot find type\
-           \: " ^ S.name(typ) ^ " in record field declaration"); (name, T.UNIT))
-    in
-      map (helper tenv) symTyPairs
-    end
 
-  fun tyCheckArray (arrSym, tenv: tenv, typeSize: expty, typeInit: expty, pos) =
+  fun tyCheckArrayExp (arrSym, tenv: tenv, typeSize: expty, typeInit: expty, pos) =
     let val elementType: T.ty = case S.look(tenv, arrSym) of
                                    SOME t => t
                                  | NONE => (ErrorMsg.error pos
@@ -135,7 +136,8 @@ struct
               in
                 transExp (venv', tenv', body)
               end
-          | A.ArrayExp{typ, size, init, pos} => tyCheckArray(typ, tenv, trexp(size), trexp(init), pos)
+          | A.ArrayExp{typ, size, init, pos} =>
+              tyCheckArrayExp(typ, tenv, trexp(size), trexp(init), pos)
           | _ => (ErrorMsg.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT}) (* redundant? *)
         and trvar (A.SimpleVar(varname,pos)) =
           (case Symbol.look (venv, varname) of
