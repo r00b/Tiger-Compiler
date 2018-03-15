@@ -3,7 +3,7 @@ motivation: testing record creation
 */
 let
   type rec = {a: int, b: string}
-  var r: rec := {a=5, b="love"}
+  var r: rec := rec{a=5, b="love"}
 in
   5
 end

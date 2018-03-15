@@ -1,0 +1,16 @@
+/* RecordExp: NilExp 
+
+As specified in Appel, Andrew W.. Modern Compiler Implementation in ML (Kindle Location 10757). Cambridge University Press. Kindle Edition. 
+
+*/
+let 
+  type my_record = {a:int, b:string}
+  var a : my_record := nil  /* OK */
+  a := nil                  /* OK */
+  function f(p: my_record) = p
+  var b := nil   /*illegal*/
+in 
+  if a = nil then ();  /* OK */
+  if nil <> a then (); /* OK */
+  f(nil)  /* OK */
+end
