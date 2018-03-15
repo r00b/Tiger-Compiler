@@ -74,6 +74,21 @@ struct
       map (helper tenv) symTyPairs
     end
 
+  fun tyCheckArray (arrSym, tenv: tenv, typeSize: expty, typeInit: expty, pos) =
+    let val elementType: T.ty = case S.look(tenv, arrSym) of
+                                   SOME t => t
+                                 | NONE => (ErrorMsg.error pos
+                                            ("Cannot find type:" ^ S.name(arrSym));
+                                            T.UNIT)
+        val arrType = case S.look(tenv, arrSym) of
+                         SOME v => {exp=(), ty=v}
+                       | NONE => {exp=(), ty=T.UNIT}
+    in
+      (checkInt(typeSize, pos); tyEq({exp=(), ty=elementType},  typeInit);
+      arrType)
+    end
+
+
   fun  iterTransTy (tylist, {venv, tenv})= 
     let fun helper ({name, ty, pos}, {venv, tenv}) = {venv=venv, tenv=S.enter(tenv,
     name, transTy(tenv, ty))}
@@ -112,6 +127,7 @@ struct
               in
                 transExp (venv', tenv', body)
               end
+          | A.ArrayExp{typ, size, init, pos} => tyCheckArray(typ, tenv, trexp(size), trexp(init), pos)
           | _ => (ErrorMsg.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT}) (* redundant? *)
         and trvar (A.SimpleVar(varname,pos)) =
           (case Symbol.look (venv, varname) of

@@ -16,7 +16,7 @@
 let
   type arrInt = array of int
 
-  var N: int = 5
+  var N: int := 5
   var a: arrInt := arrINT [N] of 0
 in
   a
