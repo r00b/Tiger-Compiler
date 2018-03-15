@@ -33,17 +33,22 @@ struct
   fun checkInt ({exp=X, ty=Y}, pos) = if Y = Types.INT then ()
                                       else ErrorMsg.error pos "Expecting INT."
 
-  fun intOper ({left=lexp, oper=operation, right=rexp, pos=p}, f) = case operation of
-                A.PlusOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.MinusOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.TimesOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.DivideOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.EqOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.NeqOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.LtOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.LeOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.GtOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.GeOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
+  fun tyCheckOper (tyLeft: expty, tyRight: expty, oper: A.oper, pos: int) =
+    case (#ty tyLeft, #ty tyRight, oper) of
+         (T.INT, T.INT, _) => {exp=(), ty=T.INT}
+       | (T.STRING, T.STRING, _) => {exp=(), ty=T.INT}
+       | (T.ARRAY(_), T.ARRAY(_), A.EqOp) => {exp=(), ty=T.INT}
+       | (T.ARRAY(_), T.ARRAY(_), A.NeqOp) => {exp=(), ty=T.INT}
+       | (T.ARRAY(_), T.ARRAY(_), otherOp) => (ErrorMsg.error pos
+       ("Illegal operator applied to arrays. Only = and <> are allowed."); {exp=(),
+       ty=T.UNIT})
+       | (T.RECORD(_), T.RECORD(_), A.EqOp) => {exp=(), ty=T.INT}
+       | (T.RECORD(_), T.RECORD(_), A.NeqOp) => {exp=(), ty=T.INT}
+       | (T.RECORD(_), T.RECORD(_), otherOp) => (ErrorMsg.error pos
+       ("Illegal operator applied to records. Only = and <> are allowed."); {exp=(),
+       ty=T.UNIT})
+       | (_, _, _) => (ErrorMsg.error pos "Types you used are not allowed\
+       \for operaotors"; {exp=(), ty=T.UNIT})
 
   fun checkIfExp (ty, expectedTy, p) =
     case expectedTy of
@@ -100,7 +105,10 @@ struct
     let
       fun trexp exp =
         case exp of
-            A.OpExp(x) => intOper (x, trexp) (*TODO fix string/array comparison*)
+            A.OpExp{left, oper, right, pos} => tyCheckOper(trexp left,
+                                                           trexp right,
+                                                           oper,
+                                                           pos)
           | A.IntExp(num) => {exp=(), ty=Types.INT}
           | A.StringExp((s,p)) => {exp=(), ty=Types.STRING}
           | A.IfExp({test=cond, then'=thenExp, else'=elseExp, pos=p}) =>
