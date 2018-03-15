@@ -1,0 +1,12 @@
+/* transTy/transDec
+
+Ilegal cyclic type declarations */
+let
+  type a = int
+  type b = a
+  type c = b
+  type a = c
+in
+  5
+end
+

@@ -1,0 +1,17 @@
+/* OpExp : array */
+let 
+  type arrInt = array of int
+  
+  var a1: arrInt := arrInt [5] of 0
+  var a2: arrInt := arrInt [6] of 0
+  var a3: arrInt := a1
+  var b := a1 = a2    /* legal : check for pointer equivalence.*/
+  var c := a1 <> a2   /* legal : check for pointer equivalence. */
+  var d := a1 > a2   /* illegal for arrays */
+  var e := a1 >= a2  /* illegal for arrays */
+  var f := a1 < a2   /* illegal for arrays */
+  var g := a1 <= a2  /* illegal for arrays */
+in 
+  5
+end
+

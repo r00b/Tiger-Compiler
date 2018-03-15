@@ -1,0 +1,5 @@
+let
+  type arrint = array of int
+in
+  5
+end

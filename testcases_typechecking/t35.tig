@@ -1,0 +1,12 @@
+/* OpExp : string comparison */
+let 
+  var a := "LOVE" <> "KOVE"  /* same content */
+  var b := "LOVE" =  "KOVE"   /* same content */
+  var c := "LOVE" >  "KOVE"   /* lexicographic order */
+  var d := "LOVE" >= "KOVE"  /* lexicographic order */
+  var e := "LOVE" <  "KOVE"   /* lexicographic order */
+  var b := "LOVE" <= "KOVE"  /* lexicographic order */
+in 
+  5
+end
+

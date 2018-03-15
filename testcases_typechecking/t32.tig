@@ -1,0 +1,12 @@
+/* transTy/transDec
+motivation: testing record creation
+
+Order needs to be the same. Should report error.
+*/
+let
+  type rec = {a: int, b: string}
+  var r: rec := {b="love", a=5}
+in
+  5
+end
+

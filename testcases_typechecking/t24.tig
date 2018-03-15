@@ -1,0 +1,9 @@
+/* transTy/transDec
+motivation: testing record type transformation
+expecting errors because LOVE is not previous defined
+*/
+let
+  type rec = {a: inT, b: LOVE}
+in
+  5
+end

@@ -1,0 +1,9 @@
+/* transTy/transDec
+motivation: testing record type transformation
+*/
+let
+  type rec = {a: int, b: string}
+in
+  5
+end
+

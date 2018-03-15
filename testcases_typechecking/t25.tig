@@ -1,0 +1,13 @@
+/* transTy/transDec
+motivation: testing record type transformation
+
+  type rec = {} is legal.
+Book: The expression type-id {id=exp{, id=exp}} or (for an empty record type) type-id { } creates a new record instance of type type-id.
+
+Appel, Andrew W.. Modern Compiler Implementation in ML (Kindle Locations 10805-10806). Cambridge University Press. Kindle Edition.
+*/
+let
+  type rec = {}
+in
+  5
+end

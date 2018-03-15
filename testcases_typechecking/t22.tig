@@ -1,0 +1,11 @@
+/* transTy/transDec
+motivation: transTy should be able to recursively get the type of a variable
+*/
+let
+  type a = int
+  type b = a
+  var c: b = 5
+in
+  c
+end
+
