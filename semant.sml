@@ -57,7 +57,7 @@ struct
        | ty2 => if tyEq(ty, ty2) then ty (* TODO *)
                    else (ErrorMsg.error p "thenExp returns different types from elseExp."; {exp=(), ty=T.UNIT})
 
-  fun tyCheckRecord(symTyPairs, tenv) =
+  fun tyCheckRecordTy(symTyPairs, tenv) =
     let fun helper tenv {name, escape, typ, pos} =
           case S.look(tenv, typ) of
              SOME v => (name, v)
@@ -78,7 +78,7 @@ struct
                                  | NONE => (ErrorMsg.error pos ("Cannot find type\
                                  \: " ^ S.name(symbol) ^ " in array declaration"); 
                                  T.UNIT))
-     | A.RecordTy(symTyPairs) => T.RECORD(tyCheckRecord(symTyPairs, tenv), ref ())
+     | A.RecordTy(symTyPairs) => T.RECORD(tyCheckRecordTy(symTyPairs, tenv), ref ())
 
   fun tyCheckArrayExp (arrSym, tenv: tenv, typeSize: expty, typeInit: expty, pos) =
     let val elementType: T.ty = case S.look(tenv, arrSym) of
