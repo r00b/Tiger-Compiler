@@ -102,12 +102,12 @@ struct
     | transDec(A.VarDec{name, escape=ref True, typ=SOME (symbol,p), init, pos}, {venv, tenv}) =
       let val {exp, ty} = transExp (venv, tenv, init)
           val isSameTy = case S.look(tenv, symbol) of
-                            NONE => (ErrorMsg.error pos "Cannot find the type"; false)
-                          | SOME t => tyEq({exp=(), ty=t}, {exp=(), ty=ty})
+                            NONE => (ErrorMsg.error pos "var of undeclared type set"; false)
+                          | SOME found_ty => tyEq({exp=(), ty=found_ty}, {exp=(), ty=ty})
       in
         case isSameTy of
            true => {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
-         | false => (ErrorMsg.error pos ("tycon mistach");
+         | false => (ErrorMsg.error pos ("tycon mismach");
                      {venv=venv, tenv=tenv})
       end
 

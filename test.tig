@@ -1,1 +1,5 @@
-var a := 1
+let
+  var a : f := 1
+in
+  3 + 3
+end
