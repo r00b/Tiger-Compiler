@@ -138,6 +138,7 @@ struct
               end
           | A.ArrayExp{typ, size, init, pos} =>
               tyCheckArrayExp(typ, tenv, trexp(size), trexp(init), pos)
+          | A.VarExp var => trvar var
           | _ => (ErrorMsg.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT}) (* redundant? *)
         and trvar (A.SimpleVar(varname,pos)) =
           (case Symbol.look (venv, varname) of
