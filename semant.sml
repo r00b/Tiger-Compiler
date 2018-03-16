@@ -144,6 +144,20 @@ struct
               | SOME (Env.VarEntry {ty}) => {exp=(), ty=ty}
               | SOME _ => (ErrorMsg.error pos ("got fun instead of var");
                           {exp=(), ty=T.UNIT}))
+          | trvar (A.FieldVar(var,fieldname, pos)) =
+            let val {exp,ty} = trvar var in
+              case ty of
+                T.RECORD(fieldlist,_) =>
+                  (case List.find (fn x => #1x = fieldname) fieldlist of
+                    NONE =>
+                    (ErrorMsg.error pos ("field " ^ S.name fieldname ^ " not found in record");
+                    {exp=(), ty=T.NIL})
+                  | SOME(field) =>
+                    {exp=(), ty=(#2field)})
+              | ty =>
+                (ErrorMsg.error pos ("expected record type");  (* TODO write fun to convert type to str *)
+                {exp=(), ty=T.NIL})
+            end
     in
       trexp exp
     end

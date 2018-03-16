@@ -1,6 +1,16 @@
 LetExp([
- VarDec(a,true,SOME(f),
-  IntExp(1))],
+ TypeDec[
+  (r,
+   RecordTy[
+    (index,true,int),
+    (value,true,string)])],
+ VarDec(f,true,NONE,
+  RecordExp(r,[
+
+   (index,
+    IntExp(2)),
+   (value,
+    StringExp("f"))]))],
  OpExp(PlusOp,
   IntExp(3),
   IntExp(3)))
