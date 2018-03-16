@@ -94,6 +94,31 @@ struct
       arrType)
     end
 
+  fun tyCheckRecordExp(fields, typ, pos, tenv) =
+    let fun checkFields(x::xs: (S.symbol*T.ty*int) list, y::ys: (S.symbol*T.ty) list, allCorrect: bool) =
+            (case (S.name(#1 x) = S.name(#1 y), #2 x = #2 y) of
+              (true, true) => checkFields(xs, ys, allCorrect)
+              | _ => (
+                  (ErrorMsg.error (#3 x) ("Type mismatch\n" ^ S.name(#1 x) ^ " : "
+                  ^ T.nameTy(#2 x) ^ "\n" ^ " " ^ S.name(#1 y) ^ " : " ^ T.nameTy(#2 y)));
+                  checkFields(xs, ys, false)
+              )
+            )
+          | checkFields([], [], allCorrect) = allCorrect
+          | checkFields(_, _, _) = false (* TODO print some useful information*)
+  in
+    (case S.look(tenv, typ) of
+        SOME v =>(case v of
+                    T.RECORD (r, _) => (case checkFields (fields,  r, true) of
+                       true => {exp=(), ty=v}
+                     | false =>( ErrorMsg.error pos "Fail to create a record\
+                     \ becasuses of type mismatch"; {exp=(), ty=T.UNIT}))
+                  | _ => ( ErrorMsg.error pos "Fail to create a record\
+                     \ becasuses of type mismatch"; {exp=(), ty=T.UNIT}))
+      | NONE => (ErrorMsg.error pos ("Cannot locate type:" ^ S.name typ);
+               {exp=(), ty=T.UNIT})
+    )
+  end
 
   fun  iterTransTy (tylist, {venv, tenv})= 
     let fun helper ({name, ty, pos}, {venv, tenv}) = {venv=venv, tenv=S.enter(tenv,
@@ -138,6 +163,13 @@ struct
               end
           | A.ArrayExp{typ, size, init, pos} =>
               tyCheckArrayExp(typ, tenv, trexp(size), trexp(init), pos)
+          | A.RecordExp{fields, typ, pos} => tyCheckRecordExp(
+                           map (fn (sym, exp, pos) =>
+                                   (sym, #ty (transExp(venv, tenv, exp)), pos)
+                               ) fields,
+                           typ,
+                           pos,
+                           tenv)
           | A.VarExp var => trvar var
           | _ => (ErrorMsg.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT}) (* redundant? *)
         and trvar (A.SimpleVar(varname,pos)) =
