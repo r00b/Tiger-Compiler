@@ -1,10 +1,10 @@
 /* transDec
 
- also checkout t27.tig t20.tig t33.tig
+ also checkout t27.tig t20.tig t30.tig
 */
 let 
   type arrInt = array of int
   var arr: arrInt := arrInt [5] of 7
 in
-  5
+  arr
 end

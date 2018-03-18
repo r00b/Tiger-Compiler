@@ -1,0 +1,12 @@
+/* OpExp : int comparison */
+let 
+  var a := 10 <> 1  
+  var b := 10 = 1   
+  var c := 10 > 1   
+  var d := 10 >= 1  
+  var e := 10 < 1   
+  var b := 10 <= 1  
+in 
+  5
+end
+

@@ -33,17 +33,22 @@ struct
   fun checkInt ({exp=X, ty=Y}, pos) = if Y = Types.INT then ()
                                       else ErrorMsg.error pos "Expecting INT."
 
-  fun intOper ({left=lexp, oper=operation, right=rexp, pos=p}, f) = case operation of
-                A.PlusOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.MinusOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.TimesOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.DivideOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.EqOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.NeqOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.LtOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.LeOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.GtOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
-              | A.GeOp => (checkInt(f lexp, p); checkInt(f rexp, p); {exp=(), ty=Types.INT})
+  fun tyCheckOper (tyLeft: expty, tyRight: expty, oper: A.oper, pos: int) =
+    case (#ty tyLeft, #ty tyRight, oper) of
+         (T.INT, T.INT, _) => {exp=(), ty=T.INT}
+       | (T.STRING, T.STRING, _) => {exp=(), ty=T.INT}
+       | (T.ARRAY(_), T.ARRAY(_), A.EqOp) => {exp=(), ty=T.INT}
+       | (T.ARRAY(_), T.ARRAY(_), A.NeqOp) => {exp=(), ty=T.INT}
+       | (T.ARRAY(_), T.ARRAY(_), otherOp) => (ErrorMsg.error pos
+       ("Illegal operator applied to arrays. Only = and <> are allowed."); {exp=(),
+       ty=T.UNIT})
+       | (T.RECORD(_), T.RECORD(_), A.EqOp) => {exp=(), ty=T.INT}
+       | (T.RECORD(_), T.RECORD(_), A.NeqOp) => {exp=(), ty=T.INT}
+       | (T.RECORD(_), T.RECORD(_), otherOp) => (ErrorMsg.error pos
+       ("Illegal operator applied to records. Only = and <> are allowed."); {exp=(),
+       ty=T.UNIT})
+       | (_, _, _) => (ErrorMsg.error pos "Types you used are not allowed\
+       \for operaotors"; {exp=(), ty=T.UNIT})
 
   fun checkIfExp (ty, expectedTy, p) =
     case expectedTy of
@@ -54,19 +59,19 @@ struct
 
   fun transTy (tenv: tenv, ty: A.ty): T.ty =
     case ty of
-       A.NameTy(symbol, pos) => (case S.look(tenv, symbol) of 
+       A.NameTy(symbol, pos) => (case S.look(tenv, symbol) of
                                    SOME v => T.NAME(symbol, ref (SOME v))
                                  | NONE => (ErrorMsg.error pos ("Cannot find type\
                                  \: " ^ S.name(symbol)); T.UNIT))
-     | A.ArrayTy(symbol, pos) => (case S.look(tenv, symbol) of 
+     | A.ArrayTy(symbol, pos) => (case S.look(tenv, symbol) of
                                    SOME v => T.ARRAY(v, ref ())
                                  | NONE => (ErrorMsg.error pos ("Cannot find type\
-                                 \: " ^ S.name(symbol) ^ " in array declaration"); 
+                                 \: " ^ S.name(symbol) ^ " in array declaration");
                                  T.UNIT))
      | A.RecordTy(symTyPairs) => T.RECORD(tyCheckRecord(symTyPairs, tenv), ref ())
-  and tyCheckRecord(symTyPairs, tenv) = 
-    let fun helper tenv {name, escape, typ, pos} = 
-          case S.look(tenv, typ) of 
+  and tyCheckRecord(symTyPairs, tenv) =
+    let fun helper tenv {name, escape, typ, pos} =
+          case S.look(tenv, typ) of
              SOME v => (name, v)
            | NONE => (ErrorMsg.error pos ("Cannot find type\
            \: " ^ S.name(typ) ^ " in record field declaration"); (name, T.UNIT))
@@ -74,7 +79,22 @@ struct
       map (helper tenv) symTyPairs
     end
 
-  fun  iterTransTy (tylist, {venv, tenv})= 
+  fun tyCheckArray (arrSym, tenv: tenv, typeSize: expty, typeInit: expty, pos) =
+    let val elementType: T.ty = case S.look(tenv, arrSym) of
+                                   SOME t => t
+                                 | NONE => (ErrorMsg.error pos
+                                            ("Cannot find type:" ^ S.name(arrSym));
+                                            T.UNIT)
+        val arrType = case S.look(tenv, arrSym) of
+                         SOME v => {exp=(), ty=v}
+                       | NONE => {exp=(), ty=T.UNIT}
+    in
+      (checkInt(typeSize, pos); tyEq({exp=(), ty=elementType},  typeInit);
+      arrType)
+    end
+
+
+  fun  iterTransTy (tylist, {venv, tenv})=
     let fun helper ({name, ty, pos}, {venv, tenv}) = {venv=venv, tenv=S.enter(tenv,
     name, transTy(tenv, ty))}
     in
@@ -85,7 +105,10 @@ struct
     let
       fun trexp exp =
         case exp of
-            A.OpExp(x) => intOper (x, trexp) (*TODO fix string/array comparison*)
+            A.OpExp{left, oper, right, pos} => tyCheckOper(trexp left,
+                                                           trexp right,
+                                                           oper,
+                                                           pos)
           | A.IntExp(num) => {exp=(), ty=Types.INT}
           | A.StringExp((s,p)) => {exp=(), ty=Types.STRING}
           | A.IfExp({test=cond, then'=thenExp, else'=elseExp, pos=p}) =>
@@ -112,6 +135,7 @@ struct
               in
                 transExp (venv', tenv', body)
               end
+          | A.ArrayExp{typ, size, init, pos} => tyCheckArray(typ, tenv, trexp(size), trexp(init), pos)
           | _ => (ErrorMsg.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT}) (* redundant? *)
         and trvar (A.SimpleVar(varname,pos)) =
           (case Symbol.look (venv, varname) of
@@ -120,6 +144,20 @@ struct
               | SOME (Env.VarEntry {ty}) => {exp=(), ty=ty}
               | SOME _ => (ErrorMsg.error pos ("got fun instead of var");
                           {exp=(), ty=T.UNIT}))
+          | trvar (A.FieldVar(var,fieldname, pos)) =
+            let val {exp,ty} = trvar var in
+              case ty of
+                T.RECORD(fieldlist,_) =>
+                  (case List.find (fn x => #1x = fieldname) fieldlist of
+                    NONE =>
+                    (ErrorMsg.error pos ("field " ^ S.name fieldname ^ " not found in record");
+                    {exp=(), ty=T.NIL})
+                  | SOME(field) =>
+                    {exp=(), ty=(#2field)})
+              | ty =>
+                (ErrorMsg.error pos ("expected record type");  (* TODO write fun to convert type to str *)
+                {exp=(), ty=T.NIL})
+            end
     in
       trexp exp
     end
@@ -132,15 +170,16 @@ struct
                           in {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
                           end)
     | transDec(A.VarDec{name, escape=ref True, typ=SOME (symbol,p), init, pos},
-    {venv, tenv}) = 
+    {venv, tenv}) =
       let val {exp, ty} = transExp (venv, tenv, init)
           val isSameTy = case S.look(tenv, symbol) of
-                            NONE => (ErrorMsg.error pos ("Cannot find the type:"
-                            ^ S.name(symbol)); false)
-                          | SOME t => tyEq({exp=(), ty=t}, {exp=(), ty=ty})
+                            NONE => (ErrorMsg.error pos "var of undeclared type set"; false)
+                          | SOME found_ty => tyEq({exp=(), ty=found_ty}, {exp=(), ty=ty})
       in
-        (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
-        else (ErrorMsg.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
+        case isSameTy of
+           true => {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
+         | false => (ErrorMsg.error pos ("tycon mismach");
+                     {venv=venv, tenv=tenv})
       end
    | transDec(A.TypeDec(tylist), {venv, tenv}) = iterTransTy(tylist, {venv=venv, tenv=tenv})
 
