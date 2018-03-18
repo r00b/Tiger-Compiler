@@ -1,0 +1,6 @@
+/* Record type recursive declaration */
+let
+   type intlist = {hd=int, tl=intlist2} /* should be error */
+in
+  5
+end

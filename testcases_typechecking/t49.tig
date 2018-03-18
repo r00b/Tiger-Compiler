@@ -1,0 +1,7 @@
+/* Record type recursive declaration */
+let
+  type rec1 = {a=int, b=rec2} /* Also legal */
+  type rec2 = {c=int }
+in
+  5
+end

@@ -1,0 +1,11 @@
+/* Record type recursive declaration */
+let
+   type intlist = {hd=int, tl=intlist}
+   type tree = {key=int, childern=treelist}
+   type treelist = {hd=tree, tl=treelist}
+
+   type t1 = {a=t2}
+   type t2 = {b=int}
+in
+  5
+end
