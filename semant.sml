@@ -99,8 +99,9 @@ struct
             (case (S.name(#1 x) = S.name(#1 y), #2 x = #2 y) of
               (true, true) => checkFields(xs, ys, allCorrect)
               | _ => (
-                  (ErrorMsg.error (#3 x) ("Type mismatch\n" ^ S.name(#1 x) ^ " : "
-                  ^ T.nameTy(#2 x) ^ "\n" ^ " " ^ S.name(#1 y) ^ " : " ^ T.nameTy(#2 y)));
+                  (print (S.name(#1 x) ^ " : "
+                  ^ T.tyToString(#2 x) ^ "\n" ^ " " ^ S.name(#1 y) ^ " : " ^
+                  T.tyToString(#2 y) ^ "\n"));
                   checkFields(xs, ys, false)
               )
             )
@@ -112,9 +113,9 @@ struct
                     T.RECORD (r, _) => (case checkFields (fields,  r, true) of
                        true => {exp=(), ty=v}
                      | false =>( ErrorMsg.error pos "Fail to create a record\
-                     \ becasuses of type mismatch"; {exp=(), ty=T.UNIT}))
+                     \ becasuse of type mismatch"; {exp=(), ty=T.UNIT}))
                   | _ => ( ErrorMsg.error pos "Fail to create a record\
-                     \ becasuses of type mismatch"; {exp=(), ty=T.UNIT}))
+                     \ becasuse of type mismatch"; {exp=(), ty=T.UNIT}))
       | NONE => (ErrorMsg.error pos ("Cannot locate type:" ^ S.name typ);
                {exp=(), ty=T.UNIT})
     )

@@ -12,7 +12,7 @@ struct
           | NAME of Symbol.symbol * ty option ref
           | UNIT
 
-  fun nameTy ty =
+  fun tyToString ty =
     case ty of
       RECORD(_) =>"record"
     | NIL =>  "record: nil"
