@@ -1,0 +1,9 @@
+/* Record type recursive declaration */
+let
+ type t1 = {a=t2}
+ type t2 = t1
+
+ type t3 = {t=t3}
+in
+  5
+end
