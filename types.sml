@@ -11,4 +11,14 @@ struct
           | ARRAY of ty * unique
           | NAME of Symbol.symbol * ty option ref
           | UNIT
+
+  fun nameTy ty =
+    case ty of
+      RECORD(_) =>"record"
+    | NIL =>  "record: nil"
+    | INT => "int"
+    | STRING => "string"
+    | ARRAY(_) =>  "array"
+    | NAME(symbol, r) => Symbol.name symbol
+    | UNIT => "unit"
 end

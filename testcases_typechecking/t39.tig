@@ -1,0 +1,6 @@
+/* VarExp */
+let
+  var a := 3
+in
+  b
+end

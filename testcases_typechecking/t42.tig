@@ -1,0 +1,15 @@
+/* RecordExp 
+
+*/
+let 
+  type rec1 = {a:int, b:string}
+  type rec2 = {a:int, b:string, c:int}
+  type rec3 = {}
+  var r2 := rec1{a=5, b="s"}
+  var r1 := rec2{a=5, b="s", c=3}
+  var r3 := rec3{}
+  var r4 := nil
+  var r5 := rec4{a=5, b="s", c=3} /* error rec is not defined */
+in 
+  5
+end

@@ -1,0 +1,10 @@
+/* RecordExp 
+
+*/
+let 
+  type rec1 = {a:int, b:string}
+  var r1 := rec1{a=5, b="s", c=3}
+  var r2 := rec1{aa=5, b="s", c=3}
+in 
+  5
+end

@@ -1,9 +1,9 @@
 /* OpExp : string comparison */
 let 
-  var s1 = "LOVE"
-  var s2 = "LOVE:
-  var b = s1 = s2
+  var s1 := "LOVE"
+  var s2 := "LOVE"
+  var b := s1 = s2
 in 
-  5
+  b
 end
 

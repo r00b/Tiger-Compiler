@@ -1,0 +1,11 @@
+/* VarExp: SubscriptVar 
+  1. var is of array type 
+  2. subscript is of int type
+
+*/
+let 
+  type intArray = array of int 
+  var intArr: intArray := intArray [5] of 0
+in
+  intArr[3]
+end

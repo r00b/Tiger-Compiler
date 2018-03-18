@@ -1,0 +1,9 @@
+/* RecordExp 
+
+*/
+let 
+  type rec1 = {a:int, b:string}
+  var r2:rec1 := nil
+in 
+  5
+end
