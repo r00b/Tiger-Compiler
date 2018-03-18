@@ -1,3 +1,16 @@
-AssignExp(
- SimpleVar(a),
- IntExp(1))
+LetExp([
+ TypeDec[
+  (r,
+   RecordTy[
+    (index,true,int),
+    (value,true,string)])],
+ VarDec(f,true,NONE,
+  RecordExp(r,[
+
+   (index,
+    IntExp(2)),
+   (value,
+    StringExp("f"))]))],
+ OpExp(PlusOp,
+  IntExp(3),
+  IntExp(3)))
