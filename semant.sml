@@ -116,8 +116,8 @@ struct
               (true, true) => checkFields(xs, ys, allCorrect)
               | _ => (
                   (print (S.name(#1 x) ^ " : "
-                  ^ T.tyToString(#2 x) ^ "\n" ^ S.name(#1 y) ^ " : " ^
-                  T.tyToString(#2 y) ^ "\n"));
+                  ^ T.typeToString(#2 x) ^ "\n" ^ S.name(#1 y) ^ " : " ^
+                  T.typeToString(#2 y) ^ "\n"));
                   checkFields(xs, ys, false)
               )
             )

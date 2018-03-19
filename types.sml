@@ -13,14 +13,14 @@ struct
           | UNIT
           | BOTTOM of string
 
-  fun tyToString ty =
+  fun typeToString ty =
     case ty of
       RECORD(_) =>"record"
     | NIL =>  "record: nil"
     | INT => "int"
     | STRING => "string"
-    | ARRAY(_) =>  "array"
-    | NAME(symbol, r) => Symbol.name symbol
+    | ARRAY(t,_) => "array of " ^ typeToString(t)
+    | NAME(symbol,_) => "name of " ^ Symbol.name(symbol)
     | UNIT => "unit"
     | BOTTOM str => str
 end
