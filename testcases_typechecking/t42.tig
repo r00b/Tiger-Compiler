@@ -1,7 +1,7 @@
-/* RecordExp 
+/* RecordExp
 
 */
-let 
+let
   type rec1 = {a:int, b:string}
   type rec2 = {a:int, b:string, c:int}
   type rec3 = {}
@@ -10,6 +10,6 @@ let
   var r3 := rec3{}
   var r4 := nil
   var r5 := rec4{a=5, b="s", c=3} /* error rec is not defined */
-in 
-  5
+in
+  (r2 := nil; 5)
 end

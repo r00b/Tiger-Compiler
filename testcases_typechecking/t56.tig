@@ -1,0 +1,9 @@
+/* RecordExp and AssignExp and SeqExp
+
+*/
+let
+  type rec1 = {a:int, b:string}
+  var r2 := rec1{a=5, b="s"}
+in
+  (r2 := nil; r2:= 5)
+end
