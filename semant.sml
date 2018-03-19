@@ -211,8 +211,8 @@ struct
                     checkIfExp(trexp thenExp, {exp=(), ty=T.UNIT}, p))
                   | SOME v => (checkInt(trexp cond, p);
                     checkIfExp(trexp thenExp, trexp v, p)))
-          | A.SeqExp(x) => if List.length x = 0 then {exp=(), ty=T.UNIT}
-                           else trexp (case List.last (x) of (v, pos) => v)
+          | A.SeqExp(expSeq) => if List.length expSeq = 0 then {exp=(), ty=T.UNIT}
+                           else List.last(map (fn x => trexp(#1 x)) expSeq)
           | A.WhileExp({test=exp, body=exp2, pos=p}) =>
               (checkInt(trexp exp, p);
               if tyNeq(#ty (trexp exp2), T.UNIT)
