@@ -43,6 +43,15 @@ struct
        | (T.NAME(n1), T.NAME(n2)) => n1 = n2
        | (_, _) => ( false)
 
+  fun isSubType(t1: T.ty, t2: T.ty) =
+    (* Whether t1 is a subtype of t2 *)
+    case (t1, t2) of
+         (T.NIL, T.RECORD(_)) => true
+       | (_, _) => false
+
+  fun tyEqOrIsSubType(t1: T.ty, t2: T.ty) =
+    isSubType(t1, t2) orelse tyEq(t1, t2)
+
   fun tyNeq (t1: T.ty, t2: T.ty): bool = not (tyEq(t1, t2))
 
   fun checkInt ({exp=X, ty=Y}, pos) = case Y of
@@ -145,7 +154,7 @@ struct
         let
           val typeFound = tyCheckOneField allNames (typ, pos)
         in
-          allCorrect andalso tyCheckOneField allNames (typ, pos)
+          allCorrect andalso typeFound
         end
     in
       foldl (helper allNames) true fields
@@ -179,7 +188,7 @@ struct
          | false => tyCheckTypeDec(tenv, legalTypes)
     end
 
-  fun updateTenv(tenv, tylist) =
+  fun updateTenv(tenv, legalTylist) =
     let fun helper ({name, ty, pos}, tenv) =
       (case ty of
           A.NameTy(nameTy) => S.enter(tenv,
@@ -192,7 +201,7 @@ struct
                                           name,
                                           recordTyGenerator(recordTy, tenv)))
     in
-      foldl helper tenv tylist
+      foldl helper tenv legalTylist
     end
 
   fun transExp(venv, tenv, exp) =
@@ -220,7 +229,7 @@ struct
               else ();
               {exp=(), ty=T.UNIT})
           | A.AssignExp({var=var, exp=exp, pos=pos}) =>
-              if tyEq(#ty (trvar var), #ty (trexp exp))
+              if tyEqOrIsSubType(#ty (trexp exp), #ty (trvar var))
               then {exp=(), ty = T.UNIT}
               else (ErrorMsg.error pos "assign type mismatch";
                     {exp=(), ty = T.UNIT})
@@ -261,11 +270,11 @@ struct
                           end)
     | transDec(A.VarDec{name, escape=ref True, typ=SOME (symbol,p), init, pos},
     {venv, tenv}) =
-      let val {exp, tyInit} = transExp (venv, tenv, init)
+      let val {exp, ty=tyInit} = transExp (venv, tenv, init)
           val isSameTy = case S.look(tenv, symbol) of
                             NONE => (ErrorMsg.error pos ("Cannot find the type:"
                             ^ S.name(symbol)); false)
-                          | SOME t => tyEq(t, tyInit)
+                          | SOME t => tyEq(t, tyInit) orelse isSubType(tyInit, t)
       in
         (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=tyInit}), tenv=tenv}
         else (ErrorMsg.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
