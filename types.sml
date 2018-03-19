@@ -11,6 +11,7 @@ struct
           | ARRAY of ty * unique
           | NAME of Symbol.symbol * ty option ref
           | UNIT
+          | BOTTOM of string
 
   fun tyToString ty =
     case ty of
@@ -21,4 +22,5 @@ struct
     | ARRAY(_) =>  "array"
     | NAME(symbol, r) => Symbol.name symbol
     | UNIT => "unit"
+    | BOTTOM str => str
 end
