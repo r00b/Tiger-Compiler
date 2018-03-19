@@ -33,7 +33,7 @@ struct
   fun tyEq (t1: T.ty, t2: T.ty): bool =
     (* test cases TODO*)
     case (t1, t2) of
-        (T.RECORD(r1), T.RECORD(r2)) => (#2 r1) = (#2 r2)
+         (T.RECORD(r1), T.RECORD(r2)) => (#2 r1) = (#2 r2)
        | (T.RECORD(r1), _) => false
        | (_, T.RECORD(r1)) => false
        | (T.STRING, T.STRING) => true
@@ -41,16 +41,16 @@ struct
        | (T.ARRAY(s, r1), T.ARRAY(s2, r2)) => r1 = r2
        | (T.NIL, T.NIL) => false (* TODO *)
        | (T.NAME(n1), T.NAME(n2)) => n1 = n2
-       | (_, _) => ( false)
 
-  fun isSubType(t1: T.ty, t2: T.ty) =
+  fun isSubtype(t1: T.ty, t2: T.ty) =
     (* Whether t1 is a subtype of t2 *)
     case (t1, t2) of
          (T.NIL, T.RECORD(_)) => true
        | (_, _) => false
 
-  fun tyEqOrIsSubType(t1: T.ty, t2: T.ty) =
-    isSubType(t1, t2) orelse tyEq(t1, t2)
+  fun tyEqOrIsSubtype(t1: T.ty, t2: T.ty) =
+    (* true if t1 is a subtype of t2 or t1 is of same type with t2 *)
+    isSubtype(t1, t2) orelse tyEq(t1, t2)
 
   fun tyNeq (t1: T.ty, t2: T.ty): bool = not (tyEq(t1, t2))
 
@@ -229,7 +229,7 @@ struct
               else ();
               {exp=(), ty=T.UNIT})
           | A.AssignExp({var=var, exp=exp, pos=pos}) =>
-              if tyEqOrIsSubType(#ty (trexp exp), #ty (trvar var))
+              if tyEqOrIsSubtype(#ty (trexp exp), #ty (trvar var))
               then {exp=(), ty = T.UNIT}
               else (ErrorMsg.error pos "assign type mismatch";
                     {exp=(), ty = T.UNIT})
@@ -274,7 +274,7 @@ struct
           val isSameTy = case S.look(tenv, symbol) of
                             NONE => (ErrorMsg.error pos ("Cannot find the type:"
                             ^ S.name(symbol)); false)
-                          | SOME t => tyEq(t, tyInit) orelse isSubType(tyInit, t)
+                          | SOME t => tyEqOrIsSubtype(tyInit, t)
       in
         (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=tyInit}), tenv=tenv}
         else (ErrorMsg.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
