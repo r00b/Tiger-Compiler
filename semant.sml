@@ -27,11 +27,26 @@ struct
   type expty = {exp: Translate.exp, ty: Types.ty}
   type exp = A.exp
 
-  fun tyEq (t1: expty, t2: expty): bool = t1 = t2
-  fun tyNeq (t1: expty, t2: expty): bool = t1 <> t2
+  fun tyEq (t1: T.ty, t2: T.ty): bool = 
+    case (t1, t2) of 
+         (T.RECORD(r1), T.RECORD(r2)) => (#2 r1) = (#2 r2)
+       | (T.RECORD(r1), _) => false
+       | (_, T.RECORD(r1)) => false
+       | (T.RECORDF(r1), T.RECORDF(r2)) => (#2 r1) = (#2 r2)
+       | (T.RECORDF(r1), _) => false
+       | (_, T.RECORDF(r1)) => false
+       | (T.STRING, T.STRING) => true
+       | (T.INT, T.INT) => true
+       | (T.ARRAY(s, r1), T.ARRAY(s2, r2)) => r1 = r2
+       | (T.NIL, T.NIL) => false
+       | (T.NAME(n1), T.NAME(n2)) => n1 = n2
+       | (_, _) => (print(T.tyToString(t1) ^ " " ^T.tyToString(t2)); false)
 
-  fun checkInt ({exp=X, ty=Y}, pos) = if Y = Types.INT then ()
-                                      else ErrorMsg.error pos "Expecting INT."
+  fun tyNeq (t1: T.ty, t2: T.ty): bool = not (tyEq(t1, t2))
+
+  fun checkInt ({exp=X, ty=Y}, pos) = case Y of
+                                      Types.INT => ()
+                                     |_ => ErrorMsg.error pos "Expecting INT."
 
   fun tyCheckOper (tyLeft: expty, tyRight: expty, oper: A.oper, pos: int) =
     case (#ty tyLeft, #ty tyRight, oper) of
@@ -52,9 +67,9 @@ struct
 
   fun checkIfExp (ty, expectedTy, p) =
     case expectedTy of
-         {exp=(), ty=T.UNIT} => if tyEq(ty, {exp=(), ty=T.UNIT}) then {exp=(), ty=T.UNIT}
+         {exp=(), ty=T.UNIT} => if tyEq(#ty ty, T.UNIT) then {exp=(), ty=T.UNIT}
                    else (ErrorMsg.error p "elseExp returns unit but thenExp does not"; {exp=(), ty=T.UNIT})
-       | ty2 => if tyEq(ty, ty2) then ty (* TODO *)
+       | ty2 => if tyEq(#ty ty, #ty ty2) then ty (* TODO *)
                    else (ErrorMsg.error p "thenExp returns different types from elseExp."; {exp=(), ty=T.UNIT})
 
   fun tyCheckRecordTy(symTyPairs, tenv) =
@@ -90,13 +105,13 @@ struct
                          SOME v => {exp=(), ty=v}
                        | NONE => {exp=(), ty=T.UNIT}
     in
-      (checkInt(typeSize, pos); tyEq({exp=(), ty=elementType},  typeInit);
+      (checkInt(typeSize, pos); tyEq(elementType,  #ty typeInit);
       arrType)
     end
 
   fun tyCheckRecordExp(fields, typ, pos, tenv) =
     let fun checkFields(x::xs: (S.symbol*T.ty*int) list, y::ys: (S.symbol*T.ty) list, allCorrect: bool) =
-            (case (S.name(#1 x) = S.name(#1 y), #2 x = #2 y) of
+            (case (S.name(#1 x) = S.name(#1 y), tyEq(#2 x, #2 y)) of
               (true, true) => checkFields(xs, ys, allCorrect)
               | _ => (
                   (print (S.name(#1 x) ^ " : "
@@ -122,10 +137,20 @@ struct
   end
 
   fun  iterTransTy (tylist, {venv, tenv})= 
-    let fun helper ({name, ty, pos}, {venv, tenv}) = {venv=venv, tenv=S.enter(tenv,
-    name, transTy(tenv, ty))}
+    let fun helper ({name, ty, pos}, {venv, tenv}) = {venv=venv, tenv=S.enter(tenv, name, transTy(tenv, ty))}
     in
       foldl helper {venv=venv, tenv=tenv} tylist
+    end
+  
+    
+  fun recordTyGenerator (tyList: (S.symbol*S.symbol) list, tenv) : T.ty =
+    let 
+      fun lookUpTy (sym, ty) = case S.look(tenv, ty) of 
+                       SOME v => (sym, v)
+                     | NONE => (ErrorMsg.error 0 ("Cannot find: " ^ S.name(ty));
+                                (sym, T.UNIT))
+    in
+      T.RECORDF((fn () => map lookUpTy tyList, ref ()))
     end
 
   fun transExp(venv, tenv, exp) =
@@ -148,12 +173,12 @@ struct
                            else trexp (case List.last (x) of (v, pos) => v)
           | A.WhileExp({test=exp, body=exp2, pos=p}) =>
               (checkInt(trexp exp, p);
-              if tyNeq(trexp exp2, {exp=(), ty=T.UNIT})
+              if tyNeq(#ty (trexp exp2), T.UNIT)
               then ErrorMsg.error p "while body produces values"
               else ();
               {exp=(), ty=T.UNIT})
           | A.AssignExp({var=var, exp=exp, pos=pos}) =>
-              if tyEq(trvar var, trexp exp)
+              if tyEq(#ty (trvar var), #ty (trexp exp))
               then {exp=(), ty = T.UNIT}
               else (ErrorMsg.error pos "assign type mismatch";
                     {exp=(), ty = T.UNIT})
@@ -197,7 +222,7 @@ struct
           val isSameTy = case S.look(tenv, symbol) of
                             NONE => (ErrorMsg.error pos ("Cannot find the type:"
                             ^ S.name(symbol)); false)
-                          | SOME t => tyEq({exp=(), ty=t}, {exp=(), ty=ty})
+                          | SOME t => tyEq(t, ty)
       in
         (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
         else (ErrorMsg.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
