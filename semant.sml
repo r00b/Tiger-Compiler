@@ -2,6 +2,7 @@ structure A = Absyn
 structure T = Types
 structure S = Symbol
 structure E = Env
+structure ERR = ERR
 
 signature SEMANT =
 sig
@@ -56,7 +57,7 @@ struct
 
   fun checkInt ({exp=X, ty=Y}, pos) = case Y of
                                       Types.INT => ()
-                                     |_ => ErrorMsg.error pos "Expecting INT."
+                                     |_ => ERR.error pos "Expecting INT."
 
   fun tyCheckOper (tyLeft: expty, tyRight: expty, oper: A.oper, pos: int) =
     case (#ty tyLeft, #ty tyRight, oper) of
@@ -64,32 +65,32 @@ struct
        | (T.STRING, T.STRING, _) => {exp=(), ty=T.INT}
        | (T.ARRAY(_), T.ARRAY(_), A.EqOp) => {exp=(), ty=T.INT}
        | (T.ARRAY(_), T.ARRAY(_), A.NeqOp) => {exp=(), ty=T.INT}
-       | (T.ARRAY(_), T.ARRAY(_), otherOp) => (ErrorMsg.error pos
+       | (T.ARRAY(_), T.ARRAY(_), otherOp) => (ERR.error pos
        ("Illegal operator applied to arrays. Only = and <> are allowed."); {exp=(),
        ty=T.UNIT})
        | (T.RECORD(_), T.RECORD(_), A.EqOp) => {exp=(), ty=T.INT}
        | (T.RECORD(_), T.RECORD(_), A.NeqOp) => {exp=(), ty=T.INT}
-       | (T.RECORD(_), T.RECORD(_), otherOp) => (ErrorMsg.error pos
+       | (T.RECORD(_), T.RECORD(_), otherOp) => (ERR.error pos
        ("Illegal operator applied to records. Only = and <> are allowed."); {exp=(),
        ty=T.UNIT})
-       | (T.NIL, T.NIL, _) => (ErrorMsg.error pos
+       | (T.NIL, T.NIL, _) => (ERR.error pos
        ("No operations can be done when both operants are nil."); {exp=(),
        ty=T.UNIT})
-       | (_, _, _) => (ErrorMsg.error pos "Types you used are not allowed\
+       | (_, _, _) => (ERR.error pos "Types you used are not allowed\
        \for operaotors"; {exp=(), ty=T.UNIT})
 
   fun checkIfExp (ty, expectedTy, p) =
     case expectedTy of
          {exp=(), ty=T.UNIT} => if tyEq(#ty ty, T.UNIT) then {exp=(), ty=T.UNIT}
-                   else (ErrorMsg.error p "elseExp returns unit but thenExp does not"; {exp=(), ty=T.UNIT})
+                   else (ERR.error p "elseExp returns unit but thenExp does not"; {exp=(), ty=T.UNIT})
        | ty2 => if tyEq(#ty ty, #ty ty2) then ty (* TODO *)
-                   else (ErrorMsg.error p "thenExp returns different types from elseExp."; {exp=(), ty=T.UNIT})
+                   else (ERR.error p "thenExp returns different types from elseExp."; {exp=(), ty=T.UNIT})
 
   fun recordTyGenerator (tyList: A.field list, tenv) : T.ty =
     let
       fun lookUpTy {name, escape, typ, pos} = case S.look(tenv, typ) of
                        SOME v => (name, v)
-                     | NONE => (ErrorMsg.error 0 ("Cannot find: " ^ S.name(typ));
+                     | NONE => (ERR.error 0 ("Cannot find: " ^ S.name(typ));
                                 (name, T.UNIT))
     in
       T.RECORD((fn () => map lookUpTy tyList, ref ()))
@@ -98,7 +99,7 @@ struct
   fun tyCheckArrayExp (arrSym, tenv: tenv, typeSize: expty, typeInit: expty, pos) =
     let val elementType: T.ty = case S.look(tenv, arrSym) of
                                    SOME t => t
-                                 | NONE => (ErrorMsg.error pos
+                                 | NONE => (ERR.error pos
                                             ("Cannot find type:" ^ S.name(arrSym));
                                             T.UNIT)
         val arrType = case S.look(tenv, arrSym) of
@@ -127,11 +128,11 @@ struct
         SOME v =>(case v of
                     T.RECORD (r, _) => (case checkFields (fields,  r(), true) of
                        true => {exp=(), ty=v}
-                     | false =>( ErrorMsg.error pos "Fail to create a record\
+                     | false =>( ERR.error pos "Fail to create a record\
                      \ becasuse of type mismatch"; {exp=(), ty=T.UNIT}))
-                  | _ => ( ErrorMsg.error pos "Fail to create a record\
+                  | _ => ( ERR.error pos "Fail to create a record\
                      \ becasuse of type mismatch"; {exp=(), ty=T.UNIT}))
-      | NONE => (ErrorMsg.error pos ("Cannot locate type:" ^ S.name typ);
+      | NONE => (ERR.error pos ("Cannot locate type:" ^ S.name typ);
                {exp=(), ty=T.UNIT})
     )
   end
@@ -167,7 +168,7 @@ struct
     | filterAndPrint f (x::xs:{name: A.symbol, ty: A.ty, pos: A.pos} list) =
       if f(x) then x::(filterAndPrint f xs)
       else (
-      ErrorMsg.error (#pos x) ("TypeDecError in for type:" ^ S.name (#name x));
+      ERR.error (#pos x) ("TypeDecError in for type:" ^ S.name (#name x));
       filterAndPrint f xs
       )
 
@@ -233,13 +234,13 @@ struct
           | A.WhileExp({test=exp, body=exp2, pos=p}) =>
               (checkInt(trexp exp, p);
               if tyNeq(#ty (trexp exp2), T.UNIT)
-              then ErrorMsg.error p "while body produces values"
+              then ERR.error p "while body produces values"
               else ();
               {exp=(), ty=T.UNIT})
           | A.AssignExp({var=var, exp=exp, pos=pos}) =>
               if tyEqOrIsSubtype(#ty (trexp exp), #ty (trvar var))
               then {exp=(), ty = T.UNIT}
-              else (ErrorMsg.error pos "assign type mismatch";
+              else (ERR.error pos "assign type mismatch";
                     {exp=(), ty = T.UNIT})
           | A.LetExp{decs, body, pos} =>
               let val {venv=venv', tenv=tenv'} = foldl transDec {venv=venv, tenv=tenv} decs
@@ -257,20 +258,20 @@ struct
                            tenv)
           | A.NilExp => {exp=(), ty=T.NIL}
           | A.VarExp var => trvar var
-          | _ => (ErrorMsg.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT}) (* redundant? *)
+          | _ => (ERR.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT}) (* redundant? *)
         and trvar (A.SimpleVar(varname,pos)) =
           (case Symbol.look (venv, varname) of
-                NONE => (ErrorMsg.error pos ("undefined variable " ^ Symbol.name varname);
+                NONE => (ERR.error pos ("undefined variable " ^ Symbol.name varname);
                 {exp=(), ty=T.UNIT})
               | SOME (Env.VarEntry {ty}) => {exp=(), ty=ty}
-              | SOME _ => (ErrorMsg.error pos ("got fun instead of var");
+              | SOME _ => (ERR.error pos ("got fun instead of var");
                           {exp=(), ty=T.UNIT}))
     in
       trexp exp
     end
   and transDec(A.VarDec{name, escape=ref True, typ=NONE, init, pos}, {venv,
   tenv}) = (case init of
-              A.NilExp => (ErrorMsg.error pos "NIL is not allowed\
+              A.NilExp => (ERR.error pos "NIL is not allowed\
             \ without specifying types in variable declarations";
             {venv=venv, tenv=tenv})
             | otherExp => let val {exp, ty} = transExp (venv, tenv, otherExp)
@@ -280,12 +281,12 @@ struct
     {venv, tenv}) =
       let val {exp, ty=tyInit} = transExp (venv, tenv, init)
           val isSameTy = case S.look(tenv, symbol) of
-                            NONE => (ErrorMsg.error pos ("Cannot find the type:"
+                            NONE => (ERR.error pos ("Cannot find the type:"
                             ^ S.name(symbol)); false)
                           | SOME t => tyEqOrIsSubtype(tyInit, t)
       in
         (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=tyInit}), tenv=tenv}
-        else (ErrorMsg.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
+        else (ERR.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
       end
    | transDec(A.TypeDec(tylist), {venv, tenv}) = 
          {venv=venv, tenv=updateTenv(tenv, tyCheckTypeDec(tenv, tylist))}
