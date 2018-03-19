@@ -1,3 +1,8 @@
+structure A = Absyn
+structure T = Types
+structure S = Symbol
+structure E = Env
+
 signature SEMANT =
 sig
   type venv
@@ -7,6 +12,8 @@ sig
 
   val transProg: exp -> unit
   val transExp: venv * tenv * exp -> expty
+  (*val tyCheckTypeDec: tenv * ({name: Absyn.symbol, ty: Absyn.ty, pos:
+  * Absyn.pos} list) -> {venv: venv, tenv: tenv}*)
   (* type venv = Env.enventry Symbol.table
   type tenv = Types.ty Symbol.table
   type expty = {exp: Translate.exp, ty: Types.ty}
@@ -18,18 +25,14 @@ end
 
 structure Semant : SEMANT =
 struct
-  structure A = Absyn
-  structure T = Types
-  structure S = Symbol
-  structure E = Env
   type venv = Env.enventry Symbol.table
   type tenv = Types.ty Symbol.table
   type expty = {exp: Translate.exp, ty: Types.ty}
   type exp = A.exp
 
-  fun tyEq (t1: T.ty, t2: T.ty): bool = 
+  fun tyEq (t1: T.ty, t2: T.ty): bool =
     (* test cases TODO*)
-    case (t1, t2) of 
+    case (t1, t2) of
         (T.RECORD(r1), T.RECORD(r2)) => (#2 r1) = (#2 r2)
        | (T.RECORD(r1), _) => false
        | (_, T.RECORD(r1)) => false
@@ -80,19 +83,6 @@ struct
       T.RECORD((fn () => map lookUpTy tyList, ref ()))
     end
 
-  fun transTy (tenv: tenv, ty: A.ty): T.ty =
-    case ty of
-       A.NameTy(symbol, pos) => (case S.look(tenv, symbol) of 
-                                   SOME v => T.NAME(symbol, ref (SOME v))
-                                 | NONE => (ErrorMsg.error pos ("Cannot find type\
-                                 \: " ^ S.name(symbol)); T.UNIT))
-     | A.ArrayTy(symbol, pos) => (case S.look(tenv, symbol) of 
-                                   SOME v => T.ARRAY(v, ref ())
-                                 | NONE => (ErrorMsg.error pos ("Cannot find type\
-                                 \: " ^ S.name(symbol) ^ " in array declaration"); 
-                                 T.UNIT))
-     | A.RecordTy(symTyPairs) => recordTyGenerator(symTyPairs, tenv)
-
   fun tyCheckArrayExp (arrSym, tenv: tenv, typeSize: expty, typeInit: expty, pos) =
     let val elementType: T.ty = case S.look(tenv, arrSym) of
                                    SOME t => t
@@ -134,13 +124,53 @@ struct
     )
   end
 
-  fun  iterTransTy (tylist, {venv, tenv})= 
-    let fun helper ({name, ty, pos}, {venv, tenv}) = {venv=venv, tenv=S.enter(tenv, name, transTy(tenv, ty))}
+  fun tyCheckOneField (allNames: tenv*A.symbol list) (symTy: A.symbol * A.pos): bool =
+    let
+      fun eqItem (item1: A.symbol) (item2: A.symbol) = item1 = item2
+      val (tenv, newTypes) = allNames
+      val (sym, pos) = symTy
+      val foundInNewTypes = case List.find (eqItem sym) newTypes of
+                               NONE => false
+                             | SOME v => true
+      val foundInTENV = case S.look(tenv, sym) of
+                             SOME v => true
+                           | NONE => false
     in
-      foldl helper {venv=venv, tenv=tenv} tylist
+      foundInNewTypes orelse foundInTENV
     end
-  
-    
+
+  fun tyCheckRecordTy(fields, allNames) =
+    let
+      fun helper allNames ({name, escape, typ, pos}, allCorrect:bool): bool =
+        let
+          val typeFound = tyCheckOneField allNames (typ, pos)
+        in
+          allCorrect andalso typeFound
+        end
+    in
+      foldl (helper allNames) true fields
+    end
+
+  fun tyCheckTypeDec(tenv, tylist: {name: A.symbol, ty: A.ty, pos: A.pos} list) =
+    let
+      val newTypes = map (fn r => #name r) tylist
+      val allNames = (tenv, newTypes)
+      fun isLegal allNames {name, ty, pos} =
+        let
+        in
+          (case ty of
+                A.NameTy(nameTy) => tyCheckOneField allNames nameTy
+              | A.RecordTy(recordTy) => tyCheckRecordTy(recordTy, allNames)
+              | A.ArrayTy(arrTy) => tyCheckOneField allNames arrTy
+          )
+        end
+      val legalTypes = List.filter (isLegal allNames) tylist
+    in
+      case tylist = legalTypes of
+           true => tylist
+         | false => tyCheckTypeDec(tenv, legalTypes)
+    end
+
   fun transExp(venv, tenv, exp) =
     let
       fun trexp exp =
@@ -205,7 +235,7 @@ struct
                           in {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
                           end)
     | transDec(A.VarDec{name, escape=ref True, typ=SOME (symbol,p), init, pos},
-    {venv, tenv}) = 
+    {venv, tenv}) =
       let val {exp, ty} = transExp (venv, tenv, init)
           val isSameTy = case S.look(tenv, symbol) of
                             NONE => (ErrorMsg.error pos ("Cannot find the type:"
@@ -215,7 +245,8 @@ struct
         (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
         else (ErrorMsg.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
       end
-   | transDec(A.TypeDec(tylist), {venv, tenv}) = iterTransTy(tylist, {venv=venv, tenv=tenv})
+   | transDec(A.TypeDec(tylist), {venv, tenv}) = (tyCheckTypeDec(tenv, tylist);
+   {venv=venv, tenv=tenv})
 
   fun transProg exp =
     let val venv = Env.base_venv
