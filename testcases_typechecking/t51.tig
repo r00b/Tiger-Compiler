@@ -1,14 +1,14 @@
 /* Record type recursive declaration */
 let
-  /* a, b, c, d, f should fail*/
+  /* a, b, c, d, f g should fail*/
   type a = {t:b}
   type b = {t:c}
   type c = {t:d}
   type d = {t:e} /* e is not defined */
 
-  type f = {t:c} 
-  type g = {t:int, t2:f} 
-  type h = {t:int} 
+  type f = {t:c}
+  type g = {t:int, t2:f}
+  type h = {t:int}
 in
   5
 end
