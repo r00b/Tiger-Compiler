@@ -261,13 +261,13 @@ struct
                           end)
     | transDec(A.VarDec{name, escape=ref True, typ=SOME (symbol,p), init, pos},
     {venv, tenv}) =
-      let val {exp, ty} = transExp (venv, tenv, init)
+      let val {exp, tyInit} = transExp (venv, tenv, init)
           val isSameTy = case S.look(tenv, symbol) of
                             NONE => (ErrorMsg.error pos ("Cannot find the type:"
                             ^ S.name(symbol)); false)
-                          | SOME t => tyEq(t, ty)
+                          | SOME t => tyEq(t, tyInit)
       in
-        (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
+        (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=tyInit}), tenv=tenv}
         else (ErrorMsg.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
       end
    | transDec(A.TypeDec(tylist), {venv, tenv}) = 
