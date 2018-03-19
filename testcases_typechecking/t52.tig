@@ -1,6 +1,6 @@
 /* Record type recursive declaration */
 let
- type t1 = {a=t2}
+ type t1 = {a:t2}
  type t2 = t3
  type t3 = int
 in
