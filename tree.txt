@@ -1,5 +1,4 @@
-OpExp(EqOp,
- VarExp(
-  SimpleVar(true)),
- VarExp(
-  SimpleVar(false)))
+LetExp([],
+ OpExp(PlusOp,
+  IntExp(3),
+  IntExp(3)))

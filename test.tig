@@ -1,1 +1,5 @@
-true = false
+let
+  type rob = {name: string, age: int}
+in
+  3 + 3
+end
