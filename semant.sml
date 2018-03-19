@@ -55,9 +55,9 @@ struct
 
   fun tyNeq (t1: T.ty, t2: T.ty): bool = not (tyEq(t1, t2))
 
-  fun checkInt ({exp=X, ty=Y}, pos) = case Y of
-                                      Types.INT => ()
-                                     |_ => ERR.error pos "Expecting INT."
+  fun checkInt (ty:T.ty, pos) =
+    if ty = T.INT then ()
+    else ERR.error pos ("TypeError: expect " ^ typeToString(ty) ^ " to be int.")
 
   fun tyCheckOper (tyLeft: expty, tyRight: expty, oper: A.oper, pos: int) =
     case (#ty tyLeft, #ty tyRight, oper) of
