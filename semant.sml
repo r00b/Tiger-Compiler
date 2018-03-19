@@ -72,6 +72,9 @@ struct
        | (T.RECORD(_), T.RECORD(_), otherOp) => (ErrorMsg.error pos
        ("Illegal operator applied to records. Only = and <> are allowed."); {exp=(),
        ty=T.UNIT})
+       | (T.NIL, T.NIL, _) => (ErrorMsg.error pos
+       ("No operations can be done when both operants are nil."); {exp=(),
+       ty=T.UNIT})
        | (_, _, _) => (ErrorMsg.error pos "Types you used are not allowed\
        \for operaotors"; {exp=(), ty=T.UNIT})
 
@@ -184,11 +187,16 @@ struct
       val legalTypes = filterAndPrint (isLegal allNames) tylist
     in
       case tylist = legalTypes of
-           true => tylist
+           true => tylist (* stop updating; return the value *)
          | false => tyCheckTypeDec(tenv, legalTypes)
     end
 
   fun updateTenv(tenv, legalTylist) =
+    (* This function add legalTylist to tenv
+    *
+    * After passing tylist to tyCheckTypeDec, we gain legalTylist where
+    * we are ready to add these legal types to tenv.
+    * *)
     let fun helper ({name, ty, pos}, tenv) =
       (case ty of
           A.NameTy(nameTy) => S.enter(tenv,
