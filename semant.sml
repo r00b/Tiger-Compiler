@@ -28,19 +28,17 @@ struct
   type exp = A.exp
 
   fun tyEq (t1: T.ty, t2: T.ty): bool = 
+    (* test cases TODO*)
     case (t1, t2) of 
-         (T.RECORD(r1), T.RECORD(r2)) => (#2 r1) = (#2 r2)
+        (T.RECORD(r1), T.RECORD(r2)) => (#2 r1) = (#2 r2)
        | (T.RECORD(r1), _) => false
        | (_, T.RECORD(r1)) => false
-       | (T.RECORDF(r1), T.RECORDF(r2)) => (#2 r1) = (#2 r2)
-       | (T.RECORDF(r1), _) => false
-       | (_, T.RECORDF(r1)) => false
        | (T.STRING, T.STRING) => true
        | (T.INT, T.INT) => true
        | (T.ARRAY(s, r1), T.ARRAY(s2, r2)) => r1 = r2
-       | (T.NIL, T.NIL) => false
+       | (T.NIL, T.NIL) => false (* TODO *)
        | (T.NAME(n1), T.NAME(n2)) => n1 = n2
-       | (_, _) => (print(T.tyToString(t1) ^ " " ^T.tyToString(t2)); false)
+       | (_, _) => ( false)
 
   fun tyNeq (t1: T.ty, t2: T.ty): bool = not (tyEq(t1, t2))
 
@@ -72,14 +70,14 @@ struct
        | ty2 => if tyEq(#ty ty, #ty ty2) then ty (* TODO *)
                    else (ErrorMsg.error p "thenExp returns different types from elseExp."; {exp=(), ty=T.UNIT})
 
-  fun tyCheckRecordTy(symTyPairs, tenv) =
-    let fun helper tenv {name, escape, typ, pos} =
-          case S.look(tenv, typ) of
-             SOME v => (name, v)
-           | NONE => (ErrorMsg.error pos ("Cannot find type\
-           \: " ^ S.name(typ) ^ " in record field declaration"); (name, T.UNIT))
+  fun recordTyGenerator (tyList: A.field list, tenv) : T.ty =
+    let
+      fun lookUpTy {name, escape, typ, pos} = case S.look(tenv, typ) of
+                       SOME v => (name, v)
+                     | NONE => (ErrorMsg.error 0 ("Cannot find: " ^ S.name(typ));
+                                (name, T.UNIT))
     in
-      map (helper tenv) symTyPairs
+      T.RECORD((fn () => map lookUpTy tyList, ref ()))
     end
 
   fun transTy (tenv: tenv, ty: A.ty): T.ty =
@@ -93,7 +91,7 @@ struct
                                  | NONE => (ErrorMsg.error pos ("Cannot find type\
                                  \: " ^ S.name(symbol) ^ " in array declaration"); 
                                  T.UNIT))
-     | A.RecordTy(symTyPairs) => T.RECORD(tyCheckRecordTy(symTyPairs, tenv), ref ())
+     | A.RecordTy(symTyPairs) => recordTyGenerator(symTyPairs, tenv)
 
   fun tyCheckArrayExp (arrSym, tenv: tenv, typeSize: expty, typeInit: expty, pos) =
     let val elementType: T.ty = case S.look(tenv, arrSym) of
@@ -115,7 +113,7 @@ struct
               (true, true) => checkFields(xs, ys, allCorrect)
               | _ => (
                   (print (S.name(#1 x) ^ " : "
-                  ^ T.tyToString(#2 x) ^ "\n" ^ " " ^ S.name(#1 y) ^ " : " ^
+                  ^ T.tyToString(#2 x) ^ "\n" ^ S.name(#1 y) ^ " : " ^
                   T.tyToString(#2 y) ^ "\n"));
                   checkFields(xs, ys, false)
               )
@@ -125,7 +123,7 @@ struct
   in
     (case S.look(tenv, typ) of
         SOME v =>(case v of
-                    T.RECORD (r, _) => (case checkFields (fields,  r, true) of
+                    T.RECORD (r, _) => (case checkFields (fields,  r(), true) of
                        true => {exp=(), ty=v}
                      | false =>( ErrorMsg.error pos "Fail to create a record\
                      \ becasuse of type mismatch"; {exp=(), ty=T.UNIT}))
@@ -143,16 +141,6 @@ struct
     end
   
     
-  fun recordTyGenerator (tyList: (S.symbol*S.symbol) list, tenv) : T.ty =
-    let 
-      fun lookUpTy (sym, ty) = case S.look(tenv, ty) of 
-                       SOME v => (sym, v)
-                     | NONE => (ErrorMsg.error 0 ("Cannot find: " ^ S.name(ty));
-                                (sym, T.UNIT))
-    in
-      T.RECORDF((fn () => map lookUpTy tyList, ref ()))
-    end
-
   fun transExp(venv, tenv, exp) =
     let
       fun trexp exp =
