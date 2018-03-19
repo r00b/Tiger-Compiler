@@ -4,8 +4,7 @@ struct
   type unique = unit ref
 
   datatype ty =
-            RECORD of (Symbol.symbol * ty) list * unique
-          | RECORDF of (unit -> (Symbol.symbol * ty) list) * unique
+            RECORD of (unit -> (Symbol.symbol * ty) list) * unique
           | NIL
           | INT
           | STRING
@@ -16,7 +15,6 @@ struct
   fun tyToString ty =
     case ty of
       RECORD(_) =>"record"
-    | RECORDF(_) =>"record"
     | NIL =>  "record: nil"
     | INT => "int"
     | STRING => "string"

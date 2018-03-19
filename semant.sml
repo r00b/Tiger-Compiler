@@ -145,11 +145,19 @@ struct
         let
           val typeFound = tyCheckOneField allNames (typ, pos)
         in
-          allCorrect andalso typeFound
+          allCorrect andalso tyCheckOneField allNames (typ, pos)
         end
     in
       foldl (helper allNames) true fields
     end
+
+  fun filterAndPrint f [] = []
+    | filterAndPrint f (x::xs:{name: A.symbol, ty: A.ty, pos: A.pos} list) =
+      if f(x) then x::(filterAndPrint f xs)
+      else (
+      ErrorMsg.error (#pos x) ("TypeDecError in for type:" ^ S.name (#name x));
+      filterAndPrint f xs
+      )
 
   fun tyCheckTypeDec(tenv, tylist: {name: A.symbol, ty: A.ty, pos: A.pos} list) =
     let
@@ -164,11 +172,27 @@ struct
               | A.ArrayTy(arrTy) => tyCheckOneField allNames arrTy
           )
         end
-      val legalTypes = List.filter (isLegal allNames) tylist
+      val legalTypes = filterAndPrint (isLegal allNames) tylist
     in
       case tylist = legalTypes of
            true => tylist
          | false => tyCheckTypeDec(tenv, legalTypes)
+    end
+
+  fun updateTenv(tenv, tylist) =
+    let fun helper ({name, ty, pos}, tenv) =
+      (case ty of
+          A.NameTy(nameTy) => S.enter(tenv,
+                                      name,
+                                      T.NAME((#1 nameTy), ref (S.look(tenv, (#1 nameTy)))))
+        | A.ArrayTy(arrTy) => S.enter(tenv,
+                                      name,
+                                      T.NAME((#1 arrTy), ref (S.look(tenv, (#1 arrTy)))))
+        | A.RecordTy(recordTy) => S.enter(tenv,
+                                          name,
+                                          recordTyGenerator(recordTy, tenv)))
+    in
+      foldl helper tenv tylist
     end
 
   fun transExp(venv, tenv, exp) =
@@ -245,8 +269,8 @@ struct
         (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
         else (ErrorMsg.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
       end
-   | transDec(A.TypeDec(tylist), {venv, tenv}) = (tyCheckTypeDec(tenv, tylist);
-   {venv=venv, tenv=tenv})
+   | transDec(A.TypeDec(tylist), {venv, tenv}) = 
+         {venv=venv, tenv=updateTenv(tenv, tyCheckTypeDec(tenv, tylist))}
 
   fun transProg exp =
     let val venv = Env.base_venv
