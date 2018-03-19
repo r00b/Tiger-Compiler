@@ -238,6 +238,7 @@ struct
                            typ,
                            pos,
                            tenv)
+          | A.NilExp => {exp=(), ty=T.NIL}
           | A.VarExp var => trvar var
           | _ => (ErrorMsg.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT}) (* redundant? *)
         and trvar (A.SimpleVar(varname,pos)) =
