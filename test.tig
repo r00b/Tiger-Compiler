@@ -1,6 +1,1 @@
-let
-  type r = {index: int, value: string}
-  var f := r{index=2,value="f"}
-in
-  3 + 3
-end
+true = false
