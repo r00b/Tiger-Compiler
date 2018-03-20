@@ -35,29 +35,19 @@ struct
   val error = ErrorMsg.error
 
   fun tyEq (t1:T.ty, t2:T.ty, pos:int): bool =
-    let
-      fun isEq (): bool =
-        case (t1, t2) of
-             (T.RECORD(u1), T.RECORD(u2)) => (#2 u1) = (#2 u2)
-           | (T.RECORD(u1), _) => false
-           | (_, T.RECORD(u1)) => false
-           | (T.STRING, T.STRING) => true
-           | (T.INT, T.INT) => true
-           | (T.UNIT, T.UNIT) => true
-           | (T.ARRAY(t1, u1), T.ARRAY(t2, u2)) => u1 = u2
-           | (T.NIL, T.NIL) => false (* TODO *)
-           | (T.NAME(n1), T.NAME(n2)) => n1 = n2
-           | (T.BOTTOM, _) => false
-           | (_, T.BOTTOM) => false
-           | (_, _) => false
-    in
-      isEq()
-      (* if isEq()
-      then true
-      else (error pos ("type mismatch: replace " ^ T.toString(t2) ^ " with " ^ T.toString(t1)); false) *)
-    end
-
-
+    case (t1, t2) of
+         (T.RECORD(u1), T.RECORD(u2)) => (#2 u1) = (#2 u2)
+       | (T.RECORD(u1), _) => false
+       | (_, T.RECORD(u1)) => false
+       | (T.STRING, T.STRING) => true
+       | (T.INT, T.INT) => true
+       | (T.UNIT, T.UNIT) => true
+       | (T.ARRAY(t1, u1), T.ARRAY(t2, u2)) => u1 = u2
+       | (T.NIL, T.NIL) => false (* TODO *)
+       | (T.NAME(n1), T.NAME(n2)) => n1 = n2
+       | (T.BOTTOM, _) => false
+       | (_, T.BOTTOM) => false
+       | (_, _) => false
 
   fun isSubtype(t1: T.ty, t2: T.ty) =
     (* Whether t1 is a subtype of t2 *)
