@@ -2,7 +2,7 @@ structure A = Absyn
 structure T = Types
 structure S = Symbol
 structure E = Env
-structure ERR = ERR
+structure ERR = ErrorMsg
 
 signature SEMANT =
 sig
@@ -39,9 +39,13 @@ struct
        | (_, T.RECORD(r1)) => false
        | (T.STRING, T.STRING) => true
        | (T.INT, T.INT) => true
+       | (T.UNIT, T.UNIT) => true
        | (T.ARRAY(s, r1), T.ARRAY(s2, r2)) => r1 = r2
        | (T.NIL, T.NIL) => false (* TODO *)
        | (T.NAME(n1), T.NAME(n2)) => n1 = n2
+       | (T.BOTTOM, _) => false
+       | (_, T.BOTTOM) => false
+       | (_, _) => false
 
   fun isSubtype(t1: T.ty, t2: T.ty) =
     (* Whether t1 is a subtype of t2 *)
@@ -56,58 +60,80 @@ struct
   fun tyNeq (t1: T.ty, t2: T.ty): bool = not (tyEq(t1, t2))
 
   fun checkInt (ty:T.ty, pos) =
-    if ty = T.INT then ()
-    else ERR.error pos ("TypeError: expect " ^ typeToString(ty) ^ " to be int.")
+    if tyEq(ty, T.INT) then ()
+    else ERR.error pos ("TypeError: expect " ^ T.toString(ty) ^ " to be int.")
 
   fun tyCheckOper (tyLeft: expty, tyRight: expty, oper: A.oper, pos: int) =
     case (#ty tyLeft, #ty tyRight, oper) of
          (T.INT, T.INT, _) => {exp=(), ty=T.INT}
-       | (T.STRING, T.STRING, _) => {exp=(), ty=T.INT}
+       | (T.STRING, T.STRING, A.EqOp) => {exp=(), ty=T.INT}
+       | (T.STRING, T.STRING, A.NeqOp) => {exp=(), ty=T.INT}
+       | (T.STRING, T.STRING, A.LtOp) => {exp=(), ty=T.INT}
+       | (T.STRING, T.STRING, A.LeOp) => {exp=(), ty=T.INT}
+       | (T.STRING, T.STRING, A.GtOp) => {exp=(), ty=T.INT}
+       | (T.STRING, T.STRING, A.GeOp) => {exp=(), ty=T.INT}
+       | (T.STRING, T.STRING, otherOp) => (ERR.error pos
+       ("Illegal operator applied to strings."); {exp=(), ty=T.BOTTOM})
        | (T.ARRAY(_), T.ARRAY(_), A.EqOp) => {exp=(), ty=T.INT}
        | (T.ARRAY(_), T.ARRAY(_), A.NeqOp) => {exp=(), ty=T.INT}
        | (T.ARRAY(_), T.ARRAY(_), otherOp) => (ERR.error pos
        ("Illegal operator applied to arrays. Only = and <> are allowed."); {exp=(),
-       ty=T.UNIT})
+       ty=T.BOTTOM})
        | (T.RECORD(_), T.RECORD(_), A.EqOp) => {exp=(), ty=T.INT}
        | (T.RECORD(_), T.RECORD(_), A.NeqOp) => {exp=(), ty=T.INT}
        | (T.RECORD(_), T.RECORD(_), otherOp) => (ERR.error pos
        ("Illegal operator applied to records. Only = and <> are allowed."); {exp=(),
-       ty=T.UNIT})
+       ty=T.BOTTOM})
        | (T.NIL, T.NIL, _) => (ERR.error pos
        ("No operations can be done when both operants are nil."); {exp=(),
-       ty=T.UNIT})
+       ty=T.BOTTOM})
        | (_, _, _) => (ERR.error pos "Types you used are not allowed\
-       \for operaotors"; {exp=(), ty=T.UNIT})
+       \for operaotors"; {exp=(), ty=T.BOTTOM})
 
   fun checkIfExp (ty, expectedTy, p) =
     case expectedTy of
          {exp=(), ty=T.UNIT} => if tyEq(#ty ty, T.UNIT) then {exp=(), ty=T.UNIT}
-                   else (ERR.error p "elseExp returns unit but thenExp does not"; {exp=(), ty=T.UNIT})
-       | ty2 => if tyEq(#ty ty, #ty ty2) then ty (* TODO *)
-                   else (ERR.error p "thenExp returns different types from elseExp."; {exp=(), ty=T.UNIT})
+                   else (
+                     ERR.error p "elseExp returns unit but thenExp does not";
+                     {exp=(), ty=T.BOTTOM})
+       | ty2 => if tyEq(#ty ty, #ty ty2) then ty
+                   else (
+                     ERR.error p "thenExp returns different types from elseExp.";
+                     {exp=(), ty=T.BOTTOM})
 
   fun recordTyGenerator (tyList: A.field list, tenv) : T.ty =
     let
       fun lookUpTy {name, escape, typ, pos} = case S.look(tenv, typ) of
                        SOME v => (name, v)
                      | NONE => (ERR.error 0 ("Cannot find: " ^ S.name(typ));
-                                (name, T.UNIT))
+                                (name, T.BOTTOM))
     in
       T.RECORD((fn () => map lookUpTy tyList, ref ()))
     end
 
   fun tyCheckArrayExp (arrSym, tenv: tenv, typeSize: expty, typeInit: expty, pos) =
     let val elementType: T.ty = case S.look(tenv, arrSym) of
-                                   SOME t => t
+                                   SOME (T.ARRAY(t)) => #1 t
+                                 | SOME otherType => (ERR.error pos
+                                            ("TypeError: expecting array type:"
+                                            ^ S.name(arrSym) ^ " and get " ^
+                                            T.toString(otherType));
+                                            T.BOTTOM)
                                  | NONE => (ERR.error pos
                                             ("Cannot find type:" ^ S.name(arrSym));
-                                            T.UNIT)
-        val arrType = case S.look(tenv, arrSym) of
-                         SOME v => {exp=(), ty=v}
-                       | NONE => {exp=(), ty=T.UNIT}
+                                            T.BOTTOM)
+        val arrType = S.look(tenv, arrSym)
+        val isIndexInt = tyEq(#ty typeSize, T.INT)
+        val defaultValueRightType = tyEq(elementType,  #ty typeInit)
     in
-      (checkInt(typeSize, pos); tyEq(elementType,  #ty typeInit);
-      arrType)
+      (case (isIndexInt, defaultValueRightType, arrType) of
+             (true, true, SOME v) => {exp=(), ty=v}
+          | (false, _, _) => (ERR.error pos "IndexTypeError";
+                              {exp=(), ty=T.BOTTOM})
+          | (_, false, _) => (ERR.error pos "DefaultValueTypeError";
+                              {exp=(), ty=T.BOTTOM})
+          | (_, _, NONE) => (ERR.error pos "Cannot find type of the array";
+                              {exp=(), ty=T.BOTTOM}))
     end
 
   fun tyCheckRecordExp(fields, typ, pos, tenv) =
@@ -116,8 +142,8 @@ struct
               (true, true) => checkFields(xs, ys, allCorrect)
               | _ => (
                   (print (S.name(#1 x) ^ " : "
-                  ^ T.typeToString(#2 x) ^ "\n" ^ S.name(#1 y) ^ " : " ^
-                  T.typeToString(#2 y) ^ "\n"));
+                  ^ T.toString(#2 x) ^ "\n" ^ S.name(#1 y) ^ " : " ^
+                  T.toString(#2 y) ^ "\n"));
                   checkFields(xs, ys, false)
               )
             )
@@ -129,11 +155,11 @@ struct
                     T.RECORD (r, _) => (case checkFields (fields,  r(), true) of
                        true => {exp=(), ty=v}
                      | false =>( ERR.error pos "Fail to create a record\
-                     \ becasuse of type mismatch"; {exp=(), ty=T.UNIT}))
+                     \ becasuse of type mismatch"; {exp=(), ty=T.BOTTOM}))
                   | _ => ( ERR.error pos "Fail to create a record\
-                     \ becasuse of type mismatch"; {exp=(), ty=T.UNIT}))
+                     \ becasuse of type mismatch"; {exp=(), ty=T.BOTTOM}))
       | NONE => (ERR.error pos ("Cannot locate type:" ^ S.name typ);
-               {exp=(), ty=T.UNIT})
+               {exp=(), ty=T.BOTTOM})
     )
   end
 
@@ -182,7 +208,7 @@ struct
           (case ty of
                 A.NameTy(nameTy) => tyCheckOneField allNames nameTy
               | A.RecordTy(recordTy) => tyCheckRecordTy(recordTy, allNames)
-              | A.ArrayTy(arrTy) => tyCheckOneField allNames arrTy
+              | A.ArrayTy(arrTy) =>tyCheckOneField allNames arrTy
           )
         end
       val legalTypes = filterAndPrint (isLegal allNames) tylist
@@ -205,7 +231,7 @@ struct
                                       T.NAME((#1 nameTy), ref (S.look(tenv, (#1 nameTy)))))
         | A.ArrayTy(arrTy) => S.enter(tenv,
                                       name,
-                                      T.NAME((#1 arrTy), ref (S.look(tenv, (#1 arrTy)))))
+                                      T.ARRAY(valOf(S.look(tenv, #1 arrTy)), (ref ())))
         | A.RecordTy(recordTy) => S.enter(tenv,
                                           name,
                                           recordTyGenerator(recordTy, tenv)))
@@ -225,23 +251,53 @@ struct
           | A.StringExp((s,p)) => {exp=(), ty=Types.STRING}
           | A.IfExp({test=cond, then'=thenExp, else'=elseExp, pos=p}) =>
               (case elseExp of (*TODO return value for IR*)
-                    NONE => (checkInt(trexp cond, p);
+                    NONE => (checkInt(#ty (trexp cond), p);
                     checkIfExp(trexp thenExp, {exp=(), ty=T.UNIT}, p))
-                  | SOME v => (checkInt(trexp cond, p);
+                  | SOME v => (checkInt(#ty (trexp cond), p);
                     checkIfExp(trexp thenExp, trexp v, p)))
           | A.SeqExp(expSeq) => if List.length expSeq = 0 then {exp=(), ty=T.UNIT}
                            else List.last(map (fn x => trexp(#1 x)) expSeq)
+          | A.CallExp({func,args,pos}) =>
+              (case S.look(venv,func) of
+                NONE => (
+                ERR.error pos ("error: function " ^ S.name(func) ^ " not defined");
+                {exp=(), ty=T.BOTTOM})
+              | SOME(E.VarEntry({ty})) => (
+                 ERR.error pos ("type mismatch: replace var of type " ^
+                                 T.toString(ty) ^ " with function call");
+                {exp=(), ty=T.BOTTOM})
+              | SOME(E.FunEntry({formals,result})) =>
+                    let
+                      val numFormals = length(formals)
+                      val numArgs = length(args)
+                      fun checkTyEqList(l1:T.ty list, l2:T.ty list) =
+                        if List.null(l1) then {exp=(),ty=result}
+                        else (
+                        case tyEq((hd l1), (hd l2)) of
+                           false => (ERR.error pos ("Type mismatch " ^
+                                     T.toString(hd l1) ^ " and " ^
+                                     T.toString(hd l2));
+                                     {exp=(), ty=T.BOTTOM})
+                         | true => checkTyEqList((tl l1), (tl l2)))
+                    in
+                      if numFormals <> numArgs
+                      then (ERR.error pos ("error: " ^ Int.toString(numFormals)
+                           ^ " args needed but only " ^ Int.toString(numArgs) ^
+                           " provided");
+                           {exp=(), ty=T.BOTTOM})
+                      else checkTyEqList(map #ty (map trexp args), formals)
+                    end)
           | A.WhileExp({test=exp, body=exp2, pos=p}) =>
-              (checkInt(trexp exp, p);
+              (checkInt(#ty (trexp exp), p);
               if tyNeq(#ty (trexp exp2), T.UNIT)
               then ERR.error p "while body produces values"
               else ();
-              {exp=(), ty=T.UNIT})
+              {exp=(), ty=T.BOTTOM})
           | A.AssignExp({var=var, exp=exp, pos=pos}) =>
               if tyEqOrIsSubtype(#ty (trexp exp), #ty (trvar var))
               then {exp=(), ty = T.UNIT}
               else (ERR.error pos "assign type mismatch";
-                    {exp=(), ty = T.UNIT})
+                    {exp=(), ty = T.BOTTOM})
           | A.LetExp{decs, body, pos} =>
               let val {venv=venv', tenv=tenv'} = foldl transDec {venv=venv, tenv=tenv} decs
               in
@@ -258,14 +314,46 @@ struct
                            tenv)
           | A.NilExp => {exp=(), ty=T.NIL}
           | A.VarExp var => trvar var
-          | _ => (ERR.error 0 "Does not match any exp" ; {exp=(), ty=T.UNIT}) (* redundant? *)
+          | _ => (ERR.error 0 "Does not match any exp" ; {exp=(), ty=T.BOTTOM}) (* redundant? *)
         and trvar (A.SimpleVar(varname,pos)) =
           (case Symbol.look (venv, varname) of
                 NONE => (ERR.error pos ("undefined variable " ^ Symbol.name varname);
-                {exp=(), ty=T.UNIT})
+                {exp=(), ty=T.BOTTOM})
               | SOME (Env.VarEntry {ty}) => {exp=(), ty=ty}
               | SOME _ => (ERR.error pos ("got fun instead of var");
-                          {exp=(), ty=T.UNIT}))
+                          {exp=(), ty=T.BOTTOM}))
+          | trvar (A.SubscriptVar(var,indexExp,pos)) = (* var is the array, exp is the index *)
+              let
+                val {exp,ty} = trvar(var)
+              in
+                case ty of
+                  T.ARRAY(t,_) =>(
+                    let
+                      val {exp=subExp,ty=subTy} = trexp(indexExp)
+                    in
+                      if tyEq(subTy, T.INT)
+                      then {exp=(),ty=t}
+                      else (ERR.error pos
+                            ("error: array can only be indexed with int, but found " ^
+                             T.toString(subTy));
+                             {exp=(),ty=T.BOTTOM})
+                    end)
+                | otherTy => (ERR.error pos ("type mismatch: replace " ^
+                T.toString(otherTy) ^ " with array"); {exp=(),ty=T.BOTTOM})
+              end
+          | trvar (A.FieldVar(var,fieldname,pos)) = (* var is the record *)
+              let
+                val {exp,ty} = trvar(var)
+              in
+                case ty of
+                  T.RECORD(fieldlist,_) =>
+                    (case List.find (fn field => (#1 field) = fieldname) (fieldlist()) of
+                      NONE => (ERR.error pos ("error: field " ^ S.name(fieldname) ^ " not found");
+                              {exp=(), ty=T.BOTTOM})
+                    | SOME(field) => {exp=(), ty=(#2 field)})
+                | ty => (ERR.error pos ("error: expected record but got " ^ T.toString(ty));
+                        {exp=(), ty=T.BOTTOM})
+              end
     in
       trexp exp
     end
@@ -288,7 +376,7 @@ struct
         (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=tyInit}), tenv=tenv}
         else (ERR.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
       end
-   | transDec(A.TypeDec(tylist), {venv, tenv}) = 
+   | transDec(A.TypeDec(tylist), {venv, tenv}) =
          {venv=venv, tenv=updateTenv(tenv, tyCheckTypeDec(tenv, tylist))}
 
   fun transProg exp =
