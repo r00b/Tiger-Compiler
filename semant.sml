@@ -293,6 +293,41 @@ struct
               then ERR.error p "while body produces values"
               else ();
               {exp=(), ty=T.BOTTOM})
+          | A.ForExp({var,escape,lo,hi,body,pos}) =>
+            let
+              val limit = S.symbol("limit")
+              val loopVar = A.SimpleVar(var,pos)
+              val limitVar = A.SimpleVar(limit,pos)
+              val loopDecs = [
+                A.VarDec({name=var,escape=escape,typ=NONE,init=lo,pos=pos}),
+                A.VarDec({name=limit,escape=ref false,typ=NONE,init=hi,pos=pos})
+              ]
+              val loop = A.WhileExp({
+                test=A.OpExp({
+                  left=A.VarExp(loopVar),
+                  oper=A.LeOp,
+                  right=A.VarExp(limitVar),
+                  pos=pos
+                  }),
+                body=A.SeqExp([
+                  (body,pos),
+                  (A.AssignExp({
+                    var=loopVar,
+                    exp=A.OpExp({
+                      left=A.VarExp(loopVar),
+                      oper=A.PlusOp,
+                      right=A.IntExp(1),
+                      pos=pos
+                    }),
+                    pos=pos
+                  }),pos)
+                ]),
+                pos=pos
+              })
+            in
+              trexp(A.LetExp{decs=loopDecs,body=body,pos=pos})
+            end
+          | A.BreakExp(_) => {exp=(),ty=T.UNIT}
           | A.AssignExp({var=var, exp=exp, pos=pos}) =>
               if tyEqOrIsSubtype(#ty (trexp exp), #ty (trvar var))
               then {exp=(), ty = T.UNIT}
@@ -314,7 +349,6 @@ struct
                            tenv)
           | A.NilExp => {exp=(), ty=T.NIL}
           | A.VarExp var => trvar var
-          | _ => (ERR.error 0 "Does not match any exp" ; {exp=(), ty=T.BOTTOM}) (* redundant? *)
         and trvar (A.SimpleVar(varname,pos)) =
           (case Symbol.look (venv, varname) of
                 NONE => (ERR.error pos ("undefined variable " ^ Symbol.name varname);
