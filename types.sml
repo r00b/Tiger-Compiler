@@ -16,7 +16,7 @@ struct
   fun toString ty =
     case ty of
       RECORD(_) =>"record"
-    | NIL =>  "record: nil"
+    | NIL =>  "nil"
     | INT => "int"
     | STRING => "string"
     | ARRAY(t,_) => "array of " ^ toString(t)

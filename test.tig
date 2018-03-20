@@ -1,2 +1,6 @@
-for i := 2 to "fat" do
-  i + 4
+let
+  var a := 3
+  var i := 2
+in
+  for i := 4 to 3 do i := 3
+end
