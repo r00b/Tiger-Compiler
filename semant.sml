@@ -34,31 +34,30 @@ struct
   val err_rep = {exp=(),ty=T.BOTTOM}
   val error = ErrorMsg.error
 
-  fun typeToString(ty:T.ty) =
-      case ty of
-          T.NIL => "nil"
-        | T.UNIT => "unit"
-        | T.INT => "int"
-        | T.STRING => "string"
-        | T.ARRAY(t,_) => "array of " ^ typeToString(t)
-        | T.NAME(symbol,_) => "name of " ^ S.name(symbol)
-        | T.RECORD(_,_) => "record"
+  fun tyEq (t1:T.ty, t2:T.ty, pos:int): bool =
+    let
+      fun isEq (): bool =
+        case (t1, t2) of
+             (T.RECORD(u1), T.RECORD(u2)) => (#2 u1) = (#2 u2)
+           | (T.RECORD(u1), _) => false
+           | (_, T.RECORD(u1)) => false
+           | (T.STRING, T.STRING) => true
+           | (T.INT, T.INT) => true
+           | (T.UNIT, T.UNIT) => true
+           | (T.ARRAY(t1, u1), T.ARRAY(t2, u2)) => u1 = u2
+           | (T.NIL, T.NIL) => false (* TODO *)
+           | (T.NAME(n1), T.NAME(n2)) => n1 = n2
+           | (T.BOTTOM, _) => false
+           | (_, T.BOTTOM) => false
+           | (_, _) => false
+    in
+      isEq()
+      (* if isEq()
+      then true
+      else (error pos ("type mismatch: replace " ^ T.toString(t2) ^ " with " ^ T.toString(t1)); false) *)
+    end
 
-  fun tyEq (t1: T.ty, t2: T.ty): bool =
-    (* test cases TODO*)
-    case (t1, t2) of
-         (T.RECORD(r1), T.RECORD(r2)) => (#2 r1) = (#2 r2)
-       | (T.RECORD(r1), _) => false
-       | (_, T.RECORD(r1)) => false
-       | (T.STRING, T.STRING) => true
-       | (T.INT, T.INT) => true
-       | (T.UNIT, T.UNIT) => true
-       | (T.ARRAY(s, r1), T.ARRAY(s2, r2)) => r1 = r2
-       | (T.NIL, T.NIL) => false (* TODO *)
-       | (T.NAME(n1), T.NAME(n2)) => n1 = n2
-       | (T.BOTTOM, _) => false
-       | (_, T.BOTTOM) => false
-       | (_, _) => false
+
 
   fun isSubtype(t1: T.ty, t2: T.ty) =
     (* Whether t1 is a subtype of t2 *)
@@ -66,94 +65,17 @@ struct
          (T.NIL, T.RECORD(_)) => true
        | (_, _) => false
 
-  fun tyEqOrIsSubtype(t1: T.ty, t2: T.ty) =
+  fun tyEqOrIsSubtype(t1: T.ty, t2: T.ty, pos:int) =
     (* true if t1 is a subtype of t2 or t1 is of same type with t2 *)
-    isSubtype(t1, t2) orelse tyEq(t1, t2)
+    isSubtype(t1, t2) orelse tyEq(t1, t2, pos)
 
-  fun tyNeq (t1: T.ty, t2: T.ty): bool = not (tyEq(t1, t2))
+  fun tyNeq (t1: T.ty, t2: T.ty, pos:int): bool = not (tyEq(t1, t2, pos))
 
-  fun checkTyEq(t1:T.ty, t2:T.ty, pos) =
-    if t1 = t2 then true
-    else case (t1,t2) of
-              (T.RECORD(_,_),T.NIL) => true
-            | (T.NIL,T.RECORD(_,_)) => true
-            | (_,_) => (error pos ("type mismatch: replace " ^ typeToString(t2) ^ " with " ^ typeToString(t1)); false)
-
-  fun checkInt (ty:T.ty, pos) =
-    checkTyEq(ty,T.INT,pos)
-
-  fun bothInt (t1:T.ty, t2:T.ty, pos) =
-    checkInt(t1,pos) andalso checkInt(t2,pos)
-
-  fun checkOp (expLeft:expty, expRight:expty, oper: A.oper, pos: int) =
-        let
-          val tyLeft = (#ty expLeft)
-          val tyRight = (#ty expRight)
-
-          fun checkArithOp() =
-            if bothInt(tyLeft,tyRight,pos)
-            then {exp=(), ty=T.INT}
-            else err_rep
-
-          fun checkCompOp() =
-            case tyLeft of
-              T.INT => if checkTyEq(T.INT, tyRight, pos)
-                       then {exp=(), ty=T.INT}
-                       else (error pos ("illegal: cannot compare int with " ^ typeToString(tyRight));
-                             err_rep)
-            | T.STRING => if checkTyEq(T.STRING, tyRight, pos)
-                          then {exp=(), ty=T.INT}
-                          else (error pos ("illegal: cannot compare string with " ^ typeToString(tyRight));
-                                err_rep)
-            | _ => (error pos ("illegal: cannot check comparison with " ^ typeToString(tyLeft));
-                    err_rep)
-
-          fun checkEqOp() =
-            case tyLeft of
-              T.INT => if checkTyEq(T.INT, tyRight, pos)
-                       then {exp=(), ty=T.INT}
-                       else (error pos ("illegal: cannot compare int with " ^ typeToString(tyRight));
-                             err_rep)
-            | T.STRING => if checkTyEq(T.STRING, tyRight, pos)
-                          then {exp=(), ty=T.INT}
-                          else (error pos ("illegal: cannot compare string with " ^ typeToString(tyRight));
-                                err_rep)
-            | T.ARRAY(ty,u) => if checkTyEq(T.ARRAY(ty,u), tyRight, pos)
-                               then {exp=(), ty=T.INT}
-                               else (error pos ("illegal: cannot compare array with " ^ typeToString(tyRight));
-                                     err_rep)
+  fun isInt (ty:T.ty, pos) = tyEq(ty,T.INT,pos)
 
 
-            | T.RECORD(fields,u) => if checkTyEq(T.RECORD(fields,u), tyRight, pos)
-                                          then {exp=(), ty=T.INT}
-                                          else (error pos ("illegal: cannot compare record with " ^ typeToString(tyRight));
-                                                err_rep)
-            | _ => (error pos ("illegal: cannot check equality with " ^ typeToString(tyLeft));
-                    err_rep)
-        in
-          case oper of
-            A.PlusOp => (checkArithOp())
-          | A.MinusOp => (checkArithOp())
-          | A.TimesOp => (checkArithOp())
-          | A.DivideOp => (checkArithOp())
-          | A.LtOp => (checkCompOp())
-          | A.LeOp => (checkCompOp())
-          | A.GtOp => (checkCompOp())
-          | A.GeOp => (checkCompOp())
-          | A.EqOp => (checkEqOp())
-          | A.NeqOp => (checkEqOp())
-        end
 
-  fun checkIfExp (ty, expectedTy, p) =
-    case expectedTy of
-         {exp=(), ty=T.UNIT} => if tyEq(#ty ty, T.UNIT) then {exp=(), ty=T.UNIT}
-                   else (
-                     ERR.error p "elseExp returns unit but thenExp does not";
-                     {exp=(), ty=T.BOTTOM})
-       | ty2 => if tyEq(#ty ty, #ty ty2) then ty
-                   else (
-                     ERR.error p "thenExp returns different types from elseExp.";
-                     {exp=(), ty=T.BOTTOM})
+
 
   fun recordTyGenerator (tyList: A.field list, tenv) : T.ty =
     let
@@ -177,8 +99,8 @@ struct
                                             ("Cannot find type:" ^ S.name(arrSym));
                                             T.BOTTOM)
         val arrType = S.look(tenv, arrSym)
-        val isIndexInt = tyEq(#ty typeSize, T.INT)
-        val defaultValueRightType = tyEq(elementType,  #ty typeInit)
+        val isIndexInt = tyEq(#ty typeSize, T.INT, pos)
+        val defaultValueRightType = tyEq(elementType,  #ty typeInit, pos)
     in
       (case (isIndexInt, defaultValueRightType, arrType) of
              (true, true, SOME v) => {exp=(), ty=v}
@@ -192,7 +114,7 @@ struct
 
   fun tyCheckRecordExp(fields, typ, pos, tenv) =
     let fun checkFields(x::xs: (S.symbol*T.ty*int) list, y::ys: (S.symbol*T.ty) list, allCorrect: bool) =
-            (case (S.name(#1 x) = S.name(#1 y), tyEq(#2 x, #2 y)) of
+            (case (S.name(#1 x) = S.name(#1 y), tyEq(#2 x, #2 y, pos)) of
               (true, true) => checkFields(xs, ys, allCorrect)
               | _ => (
                   (print (S.name(#1 x) ^ " : "
@@ -203,7 +125,7 @@ struct
             )
           | checkFields([], [], allCorrect) = allCorrect
           | checkFields(_, _, _) = false (* TODO print some useful information*)
-  in
+          in
     (case S.look(tenv, typ) of
         SOME v =>(case v of
                     T.RECORD (r, _) => (case checkFields (fields,  r(), true) of
@@ -215,7 +137,7 @@ struct
       | NONE => (ERR.error pos ("Cannot locate type:" ^ S.name typ);
                {exp=(), ty=T.BOTTOM})
     )
-  end
+    end
 
   fun tyCheckOneField (allNames: tenv*A.symbol list) (symTy: A.symbol * A.pos): bool =
     let
@@ -293,6 +215,73 @@ struct
       foldl helper tenv legalTylist
     end
 
+
+
+  fun checkOp (expLeft:expty, expRight:expty, oper: A.oper, pos: int) =
+        let
+          val tyLeft = (#ty expLeft)
+          val tyRight = (#ty expRight)
+
+          fun checkArithOp() =
+            if not (isInt(tyLeft,pos))
+            then (error pos ("type mismatch: cannot perform arithmetic with " ^ T.toString(tyLeft));
+                  err_rep)
+            else if not (isInt(tyRight,pos))
+            then (error pos ("type mismatch: cannot perform arithmetic with " ^ T.toString(tyRight));
+                  err_rep)
+            else {exp=(), ty=T.INT}
+
+          fun checkCompOp() =
+            case tyLeft of
+              T.INT => if tyEq(T.INT, tyRight, pos)
+                       then {exp=(), ty=T.INT}
+                       else (error pos ("type mismatch: cannot compare int with " ^ T.toString(tyRight));
+                             err_rep)
+            | T.STRING => if tyEq(T.STRING, tyRight, pos)
+                          then {exp=(), ty=T.INT}
+                          else (error pos ("type mismatch: cannot compare string with " ^ T.toString(tyRight));
+                                err_rep)
+            | _ => (error pos ("type mismatch: cannot check comparison with " ^ T.toString(tyLeft));
+                    err_rep)
+
+          fun checkEqOp() =
+            case tyLeft of
+              T.INT => if tyEq(T.INT, tyRight, pos)
+                       then {exp=(), ty=T.INT}
+                       else (error pos ("type mismatch: cannot compare int with " ^ T.toString(tyRight));
+                             err_rep)
+            | T.STRING => if tyEq(T.STRING, tyRight, pos)
+                          then {exp=(), ty=T.INT}
+                          else (error pos ("type mismatch: cannot compare string with " ^ T.toString(tyRight));
+                                err_rep)
+            | T.ARRAY(ty,u) => if tyEq(T.ARRAY(ty,u), tyRight, pos)
+                               then {exp=(), ty=T.INT}
+                               else ((case tyRight of
+                                         T.ARRAY(_,_) => error pos ("error: cannot compare arrays of different types")
+                                       | t => error pos ("error: cannot compare array with " ^ T.toString(t)));
+                                     err_rep)
+            | T.RECORD(fields,u) => if tyEq(T.RECORD(fields,u), tyRight, pos)
+                                    then {exp=(), ty=T.INT}
+                                    else ((case tyRight of
+                                              T.RECORD(_,_) => error pos ("error: cannot compare two different record types")
+                                            | t => error pos ("error: cannot compare record with " ^ T.toString(t)));
+                                          err_rep)
+            | _ => (error pos ("error: cannot check equality with " ^ T.toString(tyLeft));
+                    err_rep)
+        in
+          case oper of
+            A.PlusOp => (checkArithOp())
+          | A.MinusOp => (checkArithOp())
+          | A.TimesOp => (checkArithOp())
+          | A.DivideOp => (checkArithOp())
+          | A.LtOp => (checkCompOp())
+          | A.LeOp => (checkCompOp())
+          | A.GtOp => (checkCompOp())
+          | A.GeOp => (checkCompOp())
+          | A.EqOp => (checkEqOp())
+          | A.NeqOp => (checkEqOp())
+        end
+
   fun transExp(venv, tenv, exp) =
     let
       fun trexp exp =
@@ -312,45 +301,88 @@ struct
                     let
                       val numFormals = length(formals)
                       val numArgs = length(args)
-                      fun checkTyEqList(l1:T.ty list, l2:T.ty list) =
+                      fun tyEqList(l1:T.ty list, l2:T.ty list) =
                         if List.null(l1)
                         then {exp=(),ty=result}
-                        else (case tyEq((hd l1), (hd l2)) of
+                        else (case tyEq((hd l1), (hd l2), pos) of
                                false => (ERR.error pos ("Type mismatch " ^
                                          T.toString(hd l1) ^ " and " ^
                                          T.toString(hd l2));
                                          {exp=(), ty=T.BOTTOM})
-                             | true => checkTyEqList((tl l1), (tl l2)))
+                             | true => tyEqList((tl l1), (tl l2)))
                     in
                       if numFormals <> numArgs
                       then (ERR.error pos ("error: " ^ Int.toString(numFormals)
                            ^ " args needed but only " ^ Int.toString(numArgs) ^
                            " provided");
                            {exp=(), ty=T.BOTTOM})
-                      else checkTyEqList(map #ty (map trexp args), formals)
+                      else tyEqList(map #ty (map trexp args), formals)
                     end)
           |  A.OpExp{left, oper, right, pos} => checkOp(trexp(left),
                                                         trexp(right),
                                                         oper,pos)
 
-          | A.IfExp({test=cond, then'=thenExp, else'=elseExp, pos=p}) =>
-              (case elseExp of (*TODO return value for IR*)
-                    NONE => (checkInt(#ty (trexp cond), p);
-                    checkIfExp(trexp thenExp, {exp=(), ty=T.UNIT}, p))
-                  | SOME v => (checkInt(#ty (trexp cond), p);
-                    checkIfExp(trexp thenExp, trexp v, p)))
-          | A.SeqExp(expSeq) => if List.length expSeq = 0 then {exp=(), ty=T.UNIT}
-                           else List.last(map (fn x => trexp(#1 x)) expSeq)
+(* record exp *)
+          | A.IfExp({test,then',else',pos}) =>
+              let
+                val {exp=testExp,ty=testTy} = trexp(test)
+                val {exp=thenExp,ty=thenTy} = trexp(then')
+              in
+                case else' of
+                  NONE => if not (isInt(testTy,pos))
+                          then (error pos ("type mismatch: test expression must be int, not " ^ T.toString(testTy));
+                               err_rep)
+                          else if tyEq(thenTy,T.UNIT,pos)
+                          then {exp=(),ty=T.UNIT}
+                          else (error pos ("error: then expression must return unit, not " ^ T.toString(thenTy));
+                                err_rep)
+                | SOME (e) =>
+                    let
+                      val {exp=elseExp,ty=elseTy} = trexp(e)
+                    in
+                      if not (isInt(testTy,pos))
+                      then (error pos ("type mismatch: test expression must be int, not " ^ T.toString(testTy));
+                           err_rep)
+                      else if tyEq(thenTy,elseTy,pos)
+                      then {exp=(),ty=T.UNIT}
+                      else (error pos ("type mismatch: " ^ T.toString(thenTy) ^ " and " ^ T.toString(elseTy));
+                            err_rep)
+                    end
+              end
+          | A.SeqExp(exps) => (map (fn (exp,_) => (trexp exp)) (rev (tl (rev exps)));
+                              if List.null(exps) then {exp=(), ty=T.UNIT}
+                              else trexp (case List.last(exps) of (expr, pos) => expr))
 
-          | A.WhileExp({test=exp, body=exp2, pos=p}) =>
-              (checkInt(#ty (trexp exp), p);
-              if tyNeq(#ty (trexp exp2), T.UNIT)
-              then ERR.error p "while body produces values"
-              else ();
-              {exp=(), ty=T.BOTTOM})
+          | A.AssignExp({var,exp,pos}) =>
+              let
+                val varType = #ty (trvar(var))
+                val expType = #ty (trexp(exp))
+              in
+                if tyEqOrIsSubtype(varType,expType,pos)
+                then {exp=(),ty=T.UNIT}
+                else (error pos ("type mismatch: cannot assign " ^ T.toString(expType) ^ " to var of " ^ T.toString(varType));
+                      err_rep)
+              end
+
+          | A.WhileExp({test,body,pos}) =>
+              let
+                 val {exp=testExp,ty=testTy} = trexp(test)
+                 val {exp=bodyExp,ty=bodyTy} = trexp(body)
+              in
+                if not (isInt(testTy,pos))
+                then (error pos ("type mismatch: test expression must be int, not " ^ T.toString(testTy));
+                      err_rep)
+                else if tyEq(bodyTy,T.UNIT,pos)
+                then {exp=(),ty=T.UNIT}
+                else (error pos ("error: while body must eval to unit, not " ^ T.toString(bodyTy));
+                      err_rep)
+              end
           | A.ForExp({var,escape,lo,hi,body,pos}) =>
             let
               val limit = S.symbol("limit")
+              val loTy = #ty (trexp(lo))
+              val hiTy = #ty (trexp(hi))
+              val bodyTy = #ty (trexp(body))
               val loopVar = A.SimpleVar(var,pos)
               val limitVar = A.SimpleVar(limit,pos)
               val loopDecs = [
@@ -380,14 +412,19 @@ struct
                 pos=pos
               })
             in
-              trexp(A.LetExp{decs=loopDecs,body=body,pos=pos})
+              (* TODO don't let body reassign loop var *)
+              if not (isInt(loTy,pos))
+              then (error pos ("error: loop var type must be int, not " ^ T.toString(loTy));
+                    err_rep)
+              else if not (isInt(hiTy,pos))
+              then (error pos ("error: limit var type must be int, not " ^ T.toString(hiTy));
+                    err_rep)
+              else if not (tyEq(bodyTy,T.UNIT,pos))
+              then (error pos ("error: body must eval to unit, not " ^ T.toString(bodyTy));
+                    err_rep)
+              else trexp(A.LetExp{decs=loopDecs,body=body,pos=pos})
             end
           | A.BreakExp(_) => {exp=(),ty=T.UNIT}
-          | A.AssignExp({var=var, exp=exp, pos=pos}) =>
-              if tyEqOrIsSubtype(#ty (trexp exp), #ty (trvar var))
-              then {exp=(), ty = T.UNIT}
-              else (ERR.error pos "assign type mismatch";
-                    {exp=(), ty = T.BOTTOM})
           | A.LetExp{decs, body, pos} =>
               let val {venv=venv', tenv=tenv'} = foldl transDec {venv=venv, tenv=tenv} decs
               in
@@ -418,7 +455,7 @@ struct
                     let
                       val {exp=subExp,ty=subTy} = trexp(indexExp)
                     in
-                      if tyEq(subTy, T.INT)
+                      if tyEq(subTy, T.INT, pos)
                       then {exp=(),ty=t}
                       else (ERR.error pos
                             ("error: array can only be indexed with int, but found " ^
@@ -444,6 +481,7 @@ struct
     in
       trexp exp
     end
+
   and transDec(A.VarDec{name, escape=ref True, typ=NONE, init, pos}, {venv,
   tenv}) = (case init of
               A.NilExp => (ERR.error pos "NIL is not allowed\
@@ -458,7 +496,7 @@ struct
           val isSameTy = case S.look(tenv, symbol) of
                             NONE => (ERR.error pos ("Cannot find the type:"
                             ^ S.name(symbol)); false)
-                          | SOME t => tyEqOrIsSubtype(tyInit, t)
+                          | SOME t => tyEqOrIsSubtype(tyInit, t, pos)
       in
         (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=tyInit}), tenv=tenv}
         else (ERR.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
