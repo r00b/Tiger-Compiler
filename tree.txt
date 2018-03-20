@@ -1,8 +1,4 @@
-ForExp(
-i,false,
- IntExp(2),
- StringExp("fat"),
- OpExp(PlusOp,
-  VarExp(
-   SimpleVar(i)),
-  IntExp(4)))
+OpExp(PlusOp,
+ IntExp(4),
+ VarExp(
+  SimpleVar(true)))
