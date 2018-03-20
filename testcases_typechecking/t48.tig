@@ -1,0 +1,7 @@
+/* Record type recursive declaration */
+let
+  type rec2 = {c:int}
+  type rec1 = {a:int, b:rec2} /* rec2 is defined */
+in
+  5
+end
