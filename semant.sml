@@ -239,6 +239,53 @@ struct
       foldl helper tenv legalTylist
     end
 
+    fun getHeader tenv {name=nameFun, params, result, body, pos}: S.symbol *
+      E.enventry *bool =
+      let
+        fun foldHelper ({name=nameVar, escape, typ, pos}, ans): T.ty list =
+          case ans of
+               [T.BOTTOM] => [T.BOTTOM]
+             | tyList => (case S.look(tenv, typ) of
+                             NONE => (ERR.error pos ("Cannot find " ^ S.name(typ) ^
+                             " in the header of " ^ S.name(nameFun)); [T.BOTTOM])
+                           | SOME v => v::tyList)
+        val formals = foldl foldHelper [] params
+        val returnType = case result of
+                            NONE => T.UNIT
+                          | SOME (sym, pos) =>
+                             (case S.look(tenv, sym) of
+                                  SOME t => t
+                                | NONE => (ERR.error pos ("Cannot find the return type " ^ S.name(sym)); T.BOTTOM))
+        val badHeader = case (formals, returnType) of
+                             (_, T.BOTTOM) => true
+                           | ([T.BOTTOM], _) => true
+                           | _ => false
+      in
+        (nameFun, E.FunEntry{formals=formals, result=returnType}, badHeader)
+      end
+
+    fun addHeaders(headerList, venv): venv * bool =
+      let fun helper(header, (venv, broken)) =
+            case (header, broken) of
+                 ((_, _, true), _) => (venv, true)
+               |(_, true) => (venv, true)
+               | ((name, funEntry, false), false) =>
+                   (S.enter(venv, name, funEntry), false)
+      in
+        foldl helper (venv, false) headerList
+      end
+
+  fun checkFunctionDec(fundecList, {venv, tenv}): {venv: venv, tenv: tenv}=
+    let
+      val headerList = map (getHeader tenv) fundecList
+      val (venv', badHeader) = addHeaders(headerList, venv)
+    in
+      case badHeader of
+           true => (ERR.error (#pos (hd fundecList)) "Something wrong with headers of functions";
+           {venv=venv, tenv=tenv})
+         | false => {venv=venv', tenv=tenv}
+    end
+
   fun transExp(venv, tenv, exp) =
     let
       fun trexp exp =
@@ -378,6 +425,8 @@ struct
       end
    | transDec(A.TypeDec(tylist), {venv, tenv}) =
          {venv=venv, tenv=updateTenv(tenv, tyCheckTypeDec(tenv, tylist))}
+   | transDec(A.FunctionDec(fundecList), {venv, tenv}) =
+       checkFunctionDec(fundecList, {venv=venv, tenv=tenv})
 
   fun transProg exp =
     let val venv = Env.base_venv
