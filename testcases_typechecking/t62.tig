@@ -1,0 +1,7 @@
+/* funcdec */
+let 
+  function f(a:int): string = "LOVE"  /* wrong input type */
+in
+  f("NO")
+end
+

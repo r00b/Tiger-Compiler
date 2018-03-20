@@ -1,0 +1,11 @@
+/* funcdec */
+let 
+  function myprint() = 
+     print("ya")
+  function f(a:int) = 
+     if a > 5
+     then myprint(5) /* error */
+in
+  (f(7); f(3))
+end
+
