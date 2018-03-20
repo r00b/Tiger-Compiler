@@ -57,7 +57,7 @@ struct
 
 
 
-
+  (*
   fun tyCheckRecordTy(symTyPairs, tenv) =
     let fun helper tenv {name, escape, typ, pos} =
           case S.look(tenv, typ) of
@@ -100,11 +100,7 @@ struct
                          SOME v => {exp=(), ty=v}
                        | NONE => {exp=(), ty=T.UNIT}
     in
-      (checkInt((#ty typeSize), pos);
-      checkTyEq(typeInit,(#ty elementType),pos);
-
-
-      (* tyEq({exp=(), ty=elementType},typeInit); *)
+      (checkInt((#ty typeSize), pos); tyEq({exp=(), ty=elementType},  typeInit);
       arrType)
     end
 
@@ -116,7 +112,7 @@ struct
     name, transTy(tenv, ty))}
     in
       foldl helper {venv=venv, tenv=tenv} tylist
-    end
+    end *)
 
 
 
