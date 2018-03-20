@@ -11,16 +11,16 @@ struct
           | ARRAY of ty * unique
           | NAME of Symbol.symbol * ty option ref
           | UNIT
-          | BOTTOM of string
+          | BOTTOM
 
-  fun typeToString ty =
+  fun toString ty =
     case ty of
       RECORD(_) =>"record"
     | NIL =>  "record: nil"
     | INT => "int"
     | STRING => "string"
-    | ARRAY(t,_) => "array of " ^ typeToString(t)
+    | ARRAY(t,_) => "array of " ^ toString(t)
     | NAME(symbol,_) => "name of " ^ Symbol.name(symbol)
     | UNIT => "unit"
-    | BOTTOM str => str
+    | BOTTOM => "bottom"
 end
