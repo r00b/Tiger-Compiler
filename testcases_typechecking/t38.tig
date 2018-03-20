@@ -1,16 +1,16 @@
 /* OpExp : record */
-let 
+let
   type rec = {a: int, b: string}
-  
-  var a1: rec := {a=10, b="LOVE"}
-  var a2: rec := {a=10, b="love"}
+
+  var a1: rec := rec{a=10, b="LOVE"}
+  var a2: rec := rec{a=10, b="love"}
   var b := a1 = a2    /* legal : check for pointer equivalence*/
   var c := a1 <> a2   /* legal : check for pointer equivalence*/
   var d := a1 > a2   /* illegal for records */
   var e := a1 >= a2  /* illegal for records */
   var f := a1 < a2   /* illegal for records */
   var g := a1 <= a2  /* illegal for records */
-in 
+in
   5
 end
 

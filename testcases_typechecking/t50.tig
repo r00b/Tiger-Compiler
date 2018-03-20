@@ -1,0 +1,9 @@
+/* Record type recursive declaration */
+let
+  /* legal */
+  type tree = {key:int, childern:treelist}
+  type b = int
+  type treelist = {hd:tree, tl:treelist}
+in
+  5
+end
