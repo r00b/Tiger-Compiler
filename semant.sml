@@ -1,4 +1,4 @@
-:%s/\s\+$//estructure A = Absyn
+structure A = Absyn
 structure T = Types
 structure S = Symbol
 structure E = Env
