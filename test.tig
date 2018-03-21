@@ -1,6 +1,9 @@
 let
-  var a := 3
-  var i := 2
+  function reference(parameter: int) =
+    parameter := 3
+  var f := 4
+  function reference2(parameter: int) =
+    parameter := 3
 in
-  for i := 4 to 3 do i := 3
+  3 + 3
 end

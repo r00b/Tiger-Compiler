@@ -1,12 +1,20 @@
 LetExp([
- VarDec(a,true,NONE,
-  IntExp(3)),
- VarDec(i,true,NONE,
-  IntExp(2))],
- ForExp(
-i,false,
-  IntExp(4),
+ FunctionDec[
+  (reference,[
+   (parameter,true,int)],
+NONE,
+   AssignExp(
+    SimpleVar(parameter),
+    IntExp(3)))],
+ VarDec(f,true,NONE,
+  IntExp(4)),
+ FunctionDec[
+  (reference2,[
+   (parameter,true,int)],
+NONE,
+   AssignExp(
+    SimpleVar(parameter),
+    IntExp(3)))]],
+ OpExp(PlusOp,
   IntExp(3),
-  AssignExp(
-   SimpleVar(i),
-   IntExp(3))))
+  IntExp(3)))

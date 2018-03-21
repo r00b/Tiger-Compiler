@@ -308,11 +308,17 @@ struct
                            {exp=(), ty=T.BOTTOM})
                       else tyEqList(map #ty (map trexp args), formals)
                     end)
-          |  A.OpExp{left, oper, right, pos} => checkOp(trexp(left),
+          |  A.OpExp({left,oper,right,pos}) => checkOp(trexp(left),
                                                         trexp(right),
                                                         oper,pos)
 
-(* record exp *)
+          | A.RecordExp{fields,typ,pos} => tyCheckRecordExp(
+                           map (fn (sym, exp, pos) =>
+                                   (sym, #ty (transExp(venv, tenv, exp)), pos)
+                               ) fields,
+                           typ,
+                           pos,
+                           tenv)
           | A.IfExp({test,then',else',pos}) =>
               let
                 val {exp=testExp,ty=testTy} = trexp(test)
@@ -415,20 +421,13 @@ struct
               else trexp(A.LetExp{decs=loopDecs,body=body,pos=pos})
             end
           | A.BreakExp(_) => {exp=(),ty=T.UNIT}
-          | A.LetExp{decs, body, pos} =>
+          | A.LetExp({decs,body,pos}) =>
               let val {venv=venv', tenv=tenv'} = foldl transDec {venv=venv, tenv=tenv} decs
               in
                 transExp (venv', tenv', body)
               end
           | A.ArrayExp{typ, size, init, pos} =>
               tyCheckArrayExp(typ, tenv, trexp(size), trexp(init), pos)
-          | A.RecordExp{fields, typ, pos} => tyCheckRecordExp(
-                           map (fn (sym, exp, pos) =>
-                                   (sym, #ty (transExp(venv, tenv, exp)), pos)
-                               ) fields,
-                           typ,
-                           pos,
-                           tenv)
         and trvar (A.SimpleVar(varname,pos)) =
           (case Symbol.look (venv, varname) of
                 NONE => (ERR.error pos ("undefined variable " ^ Symbol.name varname);
