@@ -5,5 +5,10 @@ sig
 end =
 struct
   fun compile filename =
-    Semant.transProg (Parse.parse filename)
+    let
+      val absyn = Parse.parse(filename)
+    in
+      (FindEscape.findEscape(absyn);
+      Semant.transProg (Parse.parse filename))
+    end
 end
