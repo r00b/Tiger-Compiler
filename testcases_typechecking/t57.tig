@@ -6,6 +6,6 @@ let
      if a > 5
      then myprint()
 in
-  (f(7); f(3))
+  (f(7); f("s"))
 end
 
