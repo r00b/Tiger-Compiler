@@ -17,7 +17,8 @@ struct
 
   val baseTypes = [
     ("string", T.STRING),
-    ("int", T.INT)
+    ("int", T.INT),
+    ("unit", T.UNIT)
   ]
 
   val baseFunctions = [
