@@ -1,5 +1,12 @@
 structure MipsFrame : FRAME =
 struct
+  datatype access = InFrame of int
+                  | InReg of Temp.temp
+
+  type frame = {name: Temp.label,
+                formals: bool list,
+                accesses: access list,
+                numLocals: int}
 
   type frame = {name: Temp.label, accessTypes: string list, formals: bool list}
   fun formals(f: frame) access list =
@@ -13,6 +20,5 @@ struct
  *    2. What instructions must be produced to implement the “view shift.”*)
 
   fun allocLocal (f:frame) (b: bool): access = access
-  datatype access = InFrame of int 
-                  | InReg of Temp.temp
-end
+
+en
