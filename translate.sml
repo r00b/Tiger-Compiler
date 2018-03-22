@@ -3,6 +3,7 @@ signature TRANSLATE =
 sig
   type level
   type access (* Not the same as Frame.access *)
+  type exp
 
   val outermost : level
   val newLevel : {parent: level, name: Temp.label,
@@ -16,5 +17,7 @@ structure Translate : TRANSLATE =
 struct
   type level = int
   type access = level * Frame.access
-  type exp = unit
+  datatype exp = Ex of Tree.exp
+               | Nx of Tree.stm
+               | Cx of Temp.label * Temp.label -> Tree.stm
 end
