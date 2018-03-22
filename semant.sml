@@ -63,10 +63,6 @@ struct
 
   fun isInt (ty:T.ty, pos) = tyEq(ty,T.INT,pos)
 
-
-
-
-
   fun recordTyGenerator (tyList: A.field list, tenv) : T.ty =
     let
       fun lookUpTy {name, escape, typ, pos} = case S.look(tenv, typ) of
@@ -206,7 +202,6 @@ struct
     end
 
 
-
   fun checkOp (expLeft:expty, expRight:expty, oper: A.oper, pos: int) =
         let
           val tyLeft = (#ty expLeft)
@@ -272,7 +267,43 @@ struct
           | A.NeqOp => (checkEqOp())
         end
 
-  fun transExp(venv, tenv, exp) =
+    fun getHeader tenv {name=nameFun, params, result, body, pos}: S.symbol *
+      E.enventry *bool =
+      let
+        fun foldHelper ({name=nameVar, escape, typ, pos}, ans): T.ty list =
+          case ans of
+               [T.BOTTOM] => [T.BOTTOM]
+             | tyList => (case S.look(tenv, typ) of
+                             NONE => (ERR.error pos ("Cannot find " ^ S.name(typ) ^
+                             " in the header of " ^ S.name(nameFun)); [T.BOTTOM])
+                           | SOME v => v::tyList)
+        val formals = foldl foldHelper [] params
+        val returnType = case result of
+                            NONE => T.UNIT
+                          | SOME (sym, pos) =>
+                             (case S.look(tenv, sym) of
+                                  SOME t => t
+                                | NONE => (ERR.error pos ("Cannot find the return type " ^ S.name(sym)); T.BOTTOM))
+        val badHeader = case (formals, returnType) of
+                             (_, T.BOTTOM) => true
+                           | ([T.BOTTOM], _) => true
+                           | _ => false
+      in
+        (nameFun, E.FunEntry{formals=formals, result=returnType}, badHeader)
+      end
+
+    fun addHeaders(headerList, venv): venv * bool =
+      let fun helper(header, (venv, broken)) =
+            case (header, broken) of
+                 ((_, _, true), _) => (venv, true)
+               |(_, true) => (venv, true)
+               | ((name, funEntry, false), false) =>
+                   (S.enter(venv, name, funEntry), false)
+      in
+        foldl helper (venv, false) headerList
+      end
+
+  fun transExp(venv, tenv: tenv, exp) =
     let
       fun trexp exp =
         case exp of
@@ -492,6 +523,45 @@ struct
       end
    | transDec(A.TypeDec(tylist), {venv, tenv}) =
          {venv=venv, tenv=updateTenv(tenv, tyCheckTypeDec(tenv, tylist))}
+   | transDec(A.FunctionDec(fundecList), {venv, tenv}) =
+       checkFunctionDec(fundecList, {venv=venv, tenv=tenv})
+  and checkFunctionDec(fundecList, {venv, tenv}) =
+    let
+      val headerList = map (getHeader tenv) fundecList
+      val (venv', badHeader) = addHeaders(headerList, venv)
+    in
+      case badHeader of
+           true => (ERR.error (#pos (hd fundecList)) "Something wrong with headers of functions";
+           {venv=venv, tenv=tenv})
+         | false => (case checkEachFundec(fundecList, {venv=venv', tenv=tenv}, headerList) of
+                        true => {venv=venv', tenv=tenv}
+                      | false => (ERR.error (#pos (hd fundecList)) "Failing\
+                      \ fundec at the second pass: type checking return type\
+                      \ of each fundec";{venv=venv, tenv=tenv} ))
+    end
+   and checkEachFundec(fundecList: A.fundec list, {venv, tenv},  headerList: (Symbol.symbol * Env.enventry * bool) list): bool =
+    let
+      fun checkFundec {venv: venv, tenv: tenv} ((fundec, header), false) = false
+        | checkFundec {venv, tenv: tenv} ((fundec, header), true) =
+            let
+              fun addVar(fieldList): venv =
+                 let fun helper ({name, escape, typ, pos}, table) =
+                   S.enter(table, name, E.VarEntry{ty=valOf(S.look(tenv, typ))})
+                 in
+                   foldl helper venv fieldList
+                 end
+              val {name, params, result, body, pos} = fundec
+              val (nameFun, E.FunEntry{formals, result=expectedType}, badHeader) = header
+              val venvNew = addVar params
+              val t =  transExp(venvNew, tenv, body)
+            in
+               case tyEq(#ty t, expectedType) of
+                    true => true
+                  | false => (ERR.error pos ("Get " ^ T.toString(#ty t) ^ " rather than " ^ T.toString(expectedType)); false)
+            end
+    in
+      foldl (checkFundec {venv=venv, tenv=tenv}) true (ListPair.zip(fundecList, headerList))
+    end
 
   fun transProg exp =
     let val venv = Env.base_venv
