@@ -6,7 +6,7 @@ struct
   type frame = {name: Temp.label,
                 formals: bool list,
                 accesses: access list,
-                numLocals: int}
+                numLocals: int ref}
 
   type frame = {name: Temp.label, accessTypes: string list, formals: bool list}
   fun formals(f: frame) access list =
