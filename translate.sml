@@ -1,3 +1,4 @@
+structure Frame : FRAME = MipsFrame
 signature TRANSLATE =
 sig
   type level
