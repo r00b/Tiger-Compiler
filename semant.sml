@@ -308,9 +308,9 @@ struct
                            {exp=(), ty=T.BOTTOM})
                       else tyEqList(map #ty (map trexp args), formals)
                     end)
-          |  A.OpExp({left,oper,right,pos}) => checkOp(trexp(left),
-                                                        trexp(right),
-                                                        oper,pos)
+          | A.OpExp({left,oper,right,pos}) => checkOp(trexp(left),
+                                                      trexp(right),
+                                                      oper,pos)
 
           | A.RecordExp{fields,typ,pos} => tyCheckRecordExp(
                            map (fn (sym, exp, pos) =>
