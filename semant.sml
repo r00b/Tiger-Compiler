@@ -13,15 +13,6 @@ sig
 
   val transProg: exp -> unit
   val transExp: venv * tenv * exp -> expty
-  (*val tyCheckTypeDec: tenv * ({name: Absyn.symbol, ty: Absyn.ty, pos:
-  * Absyn.pos} list) -> {venv: venv, tenv: tenv}*)
-  (* type venv = Env.enventry Symbol.table
-  type tenv = Types.ty Symbol.table
-  type expty = {exp: Translate.exp, ty: Types.ty}
-
-  val transDec: venv * tenv * Absyn.dec -> {venv: venv, tenv: tenv}
-  val transVar: venv * tenv * Absyn.var -> expty
-  val transTy:         tenv * Absyn.ty  -> Types.ty *)
 end
 
 structure Semant : SEMANT =
@@ -63,9 +54,9 @@ struct
 
   fun isInt (ty:T.ty, pos) = tyEq(ty,T.INT,pos)
 
-  fun recordTyGenerator (tyList: A.field list, tenv) : T.ty =
+  fun recordTyGenerator (tyList: A.field list, tenvRef: tenv ref) : T.ty =
     let
-      fun lookUpTy {name, escape, typ, pos} = case S.look(tenv, typ) of
+      fun lookUpTy {name, escape, typ, pos} = case S.look(!tenvRef, typ) of
                        SOME v => (name, v)
                      | NONE => (ERR.error 0 ("Cannot find: " ^ S.name(typ));
                                 (name, T.BOTTOM))
@@ -100,7 +91,7 @@ struct
 
   fun tyCheckRecordExp(fields, typ, pos, tenv) =
     let fun checkFields(x::xs: (S.symbol*T.ty*int) list, y::ys: (S.symbol*T.ty) list, allCorrect: bool) =
-            (case (S.name(#1 x) = S.name(#1 y), tyEq(#2 x, #2 y, pos)) of
+            (case (S.name(#1 x) = S.name(#1 y), tyEqOrIsSubtype(#2 x, #2 y, pos)) of
               (true, true) => checkFields(xs, ys, allCorrect)
               | _ => (
                   (print (S.name(#1 x) ^ " : "
@@ -160,10 +151,10 @@ struct
       filterAndPrint f xs
       )
 
-  fun tyCheckTypeDec(tenv, tylist: {name: A.symbol, ty: A.ty, pos: A.pos} list) =
+  fun tyCheckTypeDec(tenvRef, tylist: {name: A.symbol, ty: A.ty, pos: A.pos} list) =
     let
       val newTypes = map (fn r => #name r) tylist
-      val allNames = (tenv, newTypes)
+      val allNames = (!tenvRef, newTypes)
       fun isLegal allNames {name, ty, pos} =
         let
         in
@@ -177,28 +168,30 @@ struct
     in
       case tylist = legalTypes of
            true => tylist (* stop updating; return the value *)
-         | false => tyCheckTypeDec(tenv, legalTypes)
+         | false => tyCheckTypeDec(tenvRef, legalTypes)
     end
 
-  fun updateTenv(tenv, legalTylist) =
+  fun updateTenv(tenvRef: tenv ref, legalTylist):tenv =
     (* This function add legalTylist to tenv
     *
     * After passing tylist to tyCheckTypeDec, we gain legalTylist where
     * we are ready to add these legal types to tenv.
     * *)
-    let fun helper ({name, ty, pos}, tenv) =
+    let fun helper tenvRef ({name, ty, pos}) =
       (case ty of
-          A.NameTy(nameTy) => S.enter(tenv,
+          A.NameTy(nameTy) => (tenvRef := S.enter(!tenvRef,
                                       name,
-                                      T.NAME((#1 nameTy), ref (S.look(tenv, (#1 nameTy)))))
-        | A.ArrayTy(arrTy) => S.enter(tenv,
+                                      T.NAME((#1 nameTy), ref (S.look(!tenvRef, (#1
+                                      nameTy))))))
+        | A.ArrayTy(arrTy) => (tenvRef := S.enter(!tenvRef,
                                       name,
-                                      T.ARRAY(valOf(S.look(tenv, #1 arrTy)), (ref ())))
-        | A.RecordTy(recordTy) => S.enter(tenv,
+                                      T.ARRAY(valOf(S.look(!tenvRef, #1 arrTy)),
+                                      (ref ()))))
+        | A.RecordTy(recordTy) => (tenvRef := S.enter(!tenvRef,
                                           name,
-                                          recordTyGenerator(recordTy, tenv)))
+                                          recordTyGenerator(recordTy, tenvRef))))
     in
-      foldl helper tenv legalTylist
+      (map (helper tenvRef) legalTylist; !tenvRef)
     end
 
 
@@ -385,7 +378,7 @@ struct
                 val varType = #ty (trvar(var))
                 val expType = #ty (trexp(exp))
               in
-                if tyEqOrIsSubtype(varType,expType,pos)
+                if tyEqOrIsSubtype(expType,varType,pos)
                 then {exp=(),ty=T.UNIT}
                 else (error pos ("type mismatch: cannot assign " ^ T.toString(expType) ^ " to var of " ^ T.toString(varType));
                       err_rep)
@@ -522,7 +515,7 @@ struct
         else (ERR.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
       end
    | transDec(A.TypeDec(tylist), {venv, tenv}) =
-         {venv=venv, tenv=updateTenv(tenv, tyCheckTypeDec(tenv, tylist))}
+         {venv=venv, tenv=updateTenv(ref tenv, tyCheckTypeDec(ref tenv, tylist))}
    | transDec(A.FunctionDec(fundecList), {venv, tenv}) =
        checkFunctionDec(fundecList, {venv=venv, tenv=tenv})
   and checkFunctionDec(fundecList, {venv, tenv}) =
