@@ -511,8 +511,9 @@ struct
                             ^ S.name(symbol)); false)
                           | SOME t => tyEqOrIsSubtype(tyInit, t, pos)
       in
-        (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=tyInit}), tenv=tenv}
-        else (error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
+        (if isSameTy
+         then {venv=S.enter(venv, name, E.VarEntry{ty=valOf(S.look(tenv, symbol))}), tenv=tenv}
+         else (error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
       end
    | transDec(A.TypeDec(tylist), {venv, tenv}) =
          {venv=venv, tenv=updateTenv(ref tenv, tyCheckTypeDec(ref tenv, tylist))}
