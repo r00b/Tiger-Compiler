@@ -46,6 +46,9 @@ struct
          (T.NIL, T.RECORD(_)) => true
        | (_, _) => false
 
+  fun mismatchErr(typeName, pos, t1, t2) = error pos
+    (typeName ^"TypeError :" ^ T.toString(t1) ^ " != " ^ T.toString(t2))
+
   fun tyEqOrIsSubtype(t1: T.ty, t2: T.ty, pos:int) =
     (* true if t1 is a subtype of t2 or t1 is of same type with t2 *)
     isSubtype(t1, t2) orelse tyEq(t1, t2, pos)
@@ -58,34 +61,30 @@ struct
     let
       fun lookUpTy {name, escape, typ, pos} = case S.look(!tenvRef, typ) of
                        SOME v => (name, v)
-                     | NONE => (ERR.error 0 ("Cannot find: " ^ S.name(typ));
+                     | NONE => (error 0 ("Cannot find: " ^ S.name(typ));
                                 (name, T.BOTTOM))
     in
       T.RECORD((fn () => map lookUpTy tyList, ref ()))
     end
 
   fun tyCheckArrayExp (arrSym, tenv: tenv, typeSize: expty, typeInit: expty, pos) =
-    let val elementType: T.ty = case S.look(tenv, arrSym) of
-                                   SOME (T.ARRAY(t)) => #1 t
-                                 | SOME otherType => (ERR.error pos
-                                            ("TypeError: expecting array type:"
-                                            ^ S.name(arrSym) ^ " and get " ^
-                                            T.toString(otherType));
-                                            T.BOTTOM)
-                                 | NONE => (ERR.error pos
-                                            ("Cannot find type:" ^ S.name(arrSym));
-                                            T.BOTTOM)
+    let
+      val elementType: T.ty =
+        case S.look(tenv, arrSym) of
+             SOME (T.ARRAY(t)) => #1 t
+           | SOME otherType => ("TypeError: " ^ S.name(arrSym) ^ " is not array."; T.BOTTOM)
+           | NONE => (error pos ("Cannot find type:" ^ S.name(arrSym)); T.BOTTOM)
         val arrType = S.look(tenv, arrSym)
         val isIndexInt = tyEq(#ty typeSize, T.INT, pos)
         val defaultValueRightType = tyEq(elementType,  #ty typeInit, pos)
     in
       (case (isIndexInt, defaultValueRightType, arrType) of
              (true, true, SOME v) => {exp=(), ty=v}
-          | (false, _, _) => (ERR.error pos "IndexTypeError";
+          | (false, _, _) => (error pos "ArrayIndexTypeError";
                               {exp=(), ty=T.BOTTOM})
-          | (_, false, _) => (ERR.error pos "DefaultValueTypeError";
+          | (_, false, _) => (mismatchErr("Array", pos, #ty typeInit, elementType);
                               {exp=(), ty=T.BOTTOM})
-          | (_, _, NONE) => (ERR.error pos "Cannot find type of the array";
+          | (_, _, NONE) => (error pos "Cannot find type of the array";
                               {exp=(), ty=T.BOTTOM}))
     end
 
@@ -107,11 +106,11 @@ struct
         SOME v =>(case v of
                     T.RECORD (r, _) => (case checkFields (fields,  r(), true) of
                        true => {exp=(), ty=v}
-                     | false =>( ERR.error pos "Fail to create a record\
+                     | false =>( error pos "Fail to create a record\
                      \ becasuse of type mismatch"; {exp=(), ty=T.BOTTOM}))
-                  | _ => ( ERR.error pos "Fail to create a record\
+                  | _ => ( error pos "Fail to create a record\
                      \ becasuse of type mismatch"; {exp=(), ty=T.BOTTOM}))
-      | NONE => (ERR.error pos ("Cannot locate type:" ^ S.name typ);
+      | NONE => (error pos ("Cannot locate type:" ^ S.name typ);
                {exp=(), ty=T.BOTTOM})
     )
     end
@@ -147,7 +146,7 @@ struct
     | filterAndPrint f (x::xs:{name: A.symbol, ty: A.ty, pos: A.pos} list) =
       if f(x) then x::(filterAndPrint f xs)
       else (
-      ERR.error (#pos x) ("TypeDecError in for type:" ^ S.name (#name x));
+      error (#pos x) ("TypeDecError in for type:" ^ S.name (#name x));
       filterAndPrint f xs
       )
 
@@ -197,28 +196,31 @@ struct
 
   fun checkOp (expLeft:expty, expRight:expty, oper: A.oper, pos: int) =
         let
+          fun compareErr(t1, t2) = (error pos
+            ("type mismatch: cannot compare " ^ t1 ^ " with " ^ T.toString(t2));
+            err_rep)
+          fun illegalOpErr(oper, t2) = (error pos
+            ("IllegalOperationError: cannot perform " ^ oper ^ " on " ^
+            T.toString(t2));
+            err_rep)
           val tyLeft = (#ty expLeft)
           val tyRight = (#ty expRight)
 
           fun checkArithOp() =
             if not (isInt(tyLeft,pos))
-            then (error pos ("type mismatch: cannot perform arithmetic with " ^ T.toString(tyLeft));
-                  err_rep)
+            then illegalOpErr("+-/*", tyLeft)
             else if not (isInt(tyRight,pos))
-            then (error pos ("type mismatch: cannot perform arithmetic with " ^ T.toString(tyRight));
-                  err_rep)
+            then illegalOpErr("+-/*", tyLeft)
             else {exp=(), ty=T.INT}
 
           fun checkCompOp() =
             case tyLeft of
               T.INT => if tyEq(T.INT, tyRight, pos)
                        then {exp=(), ty=T.INT}
-                       else (error pos ("type mismatch: cannot compare int with " ^ T.toString(tyRight));
-                             err_rep)
+                       else (compareErr("int", tyRight); err_rep)
             | T.STRING => if tyEq(T.STRING, tyRight, pos)
                           then {exp=(), ty=T.INT}
-                          else (error pos ("type mismatch: cannot compare string with " ^ T.toString(tyRight));
-                                err_rep)
+                          else compareErr("string", tyRight)
             | _ => (error pos ("type mismatch: cannot check comparison with " ^ T.toString(tyLeft));
                     err_rep)
 
@@ -267,7 +269,7 @@ struct
           case ans of
                [T.BOTTOM] => [T.BOTTOM]
              | tyList => (case S.look(tenv, typ) of
-                             NONE => (ERR.error pos ("Cannot find " ^ S.name(typ) ^
+                             NONE => (error pos ("Cannot find " ^ S.name(typ) ^
                              " in the header of " ^ S.name(nameFun)); [T.BOTTOM])
                            | SOME v => v::tyList)
         val formals = foldl foldHelper [] params
@@ -276,7 +278,7 @@ struct
                           | SOME (sym, pos) =>
                              (case S.look(tenv, sym) of
                                   SOME t => t
-                                | NONE => (ERR.error pos ("Cannot find the return type " ^ S.name(sym)); T.BOTTOM))
+                                | NONE => (error pos ("Cannot find the return type " ^ S.name(sym)); T.BOTTOM))
         val badHeader = case (formals, returnType) of
                              (_, T.BOTTOM) => true
                            | ([T.BOTTOM], _) => true
@@ -306,9 +308,9 @@ struct
           | A.StringExp((str,pos)) => {exp=(), ty=Types.STRING}
           | A.CallExp({func,args,pos}) =>
               (case S.look(venv,func) of
-                NONE => (ERR.error pos ("error: function " ^ S.name(func) ^ " not defined");
+                NONE => (error pos ("error: function " ^ S.name(func) ^ " not defined");
                         {exp=(), ty=T.BOTTOM})
-              | SOME(E.VarEntry({ty})) => (ERR.error pos ("type mismatch: replace var " ^
+              | SOME(E.VarEntry({ty})) => (error pos ("type mismatch: replace var " ^
                                           S.name(func) ^ " with function call");
                                           {exp=(), ty=T.BOTTOM})
               | SOME(E.FunEntry({formals,result})) =>
@@ -319,14 +321,12 @@ struct
                         if List.null(l1)
                         then {exp=(),ty=result}
                         else (case tyEq((hd l1), (hd l2), pos) of
-                               false => (ERR.error pos ("Type mismatch " ^
-                                         T.toString(hd l1) ^ " and " ^
-                                         T.toString(hd l2));
+                               false => (mismatchErr("FunctionParam", pos, (hd l1), (hd l2));
                                          {exp=(), ty=T.BOTTOM})
                              | true => tyEqList((tl l1), (tl l2)))
                     in
                       if numFormals <> numArgs
-                      then (ERR.error pos ("error: " ^ Int.toString(numFormals)
+                      then (error pos ("error: " ^ Int.toString(numFormals)
                            ^ " args needed but only " ^ Int.toString(numArgs) ^
                            " provided");
                            {exp=(), ty=T.BOTTOM})
@@ -454,10 +454,10 @@ struct
               tyCheckArrayExp(typ, tenv, trexp(size), trexp(init), pos)
         and trvar (A.SimpleVar(varname,pos)) =
           (case Symbol.look (venv, varname) of
-                NONE => (ERR.error pos ("undefined variable " ^ Symbol.name varname);
+                NONE => (error pos ("undefined variable " ^ Symbol.name varname);
                 {exp=(), ty=T.BOTTOM})
               | SOME (Env.VarEntry {ty}) => {exp=(), ty=ty}
-              | SOME _ => (ERR.error pos ("got fun instead of var");
+              | SOME _ => (error pos ("got fun instead of var");
                           {exp=(), ty=T.BOTTOM}))
           | trvar (A.SubscriptVar(var,indexExp,pos)) = (* var is the array, exp is the index *)
               let
@@ -470,12 +470,12 @@ struct
                     in
                       if tyEq(subTy, T.INT, pos)
                       then {exp=(),ty=t}
-                      else (ERR.error pos
+                      else (error pos
                             ("error: array can only be indexed with int, but found " ^
                              T.toString(subTy));
                              {exp=(),ty=T.BOTTOM})
                     end)
-                | otherTy => (ERR.error pos ("type mismatch: replace " ^
+                | otherTy => (error pos ("type mismatch: replace " ^
                 T.toString(otherTy) ^ " with array"); {exp=(),ty=T.BOTTOM})
               end
           | trvar (A.FieldVar(var,fieldname,pos)) = (* var is the record *)
@@ -485,10 +485,10 @@ struct
                 case ty of
                   T.RECORD(fieldlist,_) =>
                     (case List.find (fn field => (#1 field) = fieldname) (fieldlist()) of
-                      NONE => (ERR.error pos ("error: field " ^ S.name(fieldname) ^ " not found");
+                      NONE => (error pos ("error: field " ^ S.name(fieldname) ^ " not found");
                               {exp=(), ty=T.BOTTOM})
                     | SOME(field) => {exp=(), ty=(#2 field)})
-                | ty => (ERR.error pos ("error: expected record but got " ^ T.toString(ty));
+                | ty => (error pos ("error: expected record but got " ^ T.toString(ty));
                         {exp=(), ty=T.BOTTOM})
               end
     in
@@ -497,7 +497,7 @@ struct
 
   and transDec(A.VarDec{name, escape=ref True, typ=NONE, init, pos}, {venv,
   tenv}) = (case init of
-              A.NilExp => (ERR.error pos "NIL is not allowed\
+              A.NilExp => (error pos "NIL is not allowed\
             \ without specifying types in variable declarations";
             {venv=venv, tenv=tenv})
             | otherExp => let val {exp, ty} = transExp (venv, tenv, otherExp)
@@ -507,12 +507,12 @@ struct
     {venv, tenv}) =
       let val {exp, ty=tyInit} = transExp (venv, tenv, init)
           val isSameTy = case S.look(tenv, symbol) of
-                            NONE => (ERR.error pos ("Cannot find the type:"
+                            NONE => (error pos ("Cannot find the type:"
                             ^ S.name(symbol)); false)
                           | SOME t => tyEqOrIsSubtype(tyInit, t, pos)
       in
         (if isSameTy then {venv=S.enter(venv, name, E.VarEntry{ty=tyInit}), tenv=tenv}
-        else (ERR.error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
+        else (error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
       end
    | transDec(A.TypeDec(tylist), {venv, tenv}) =
          {venv=venv, tenv=updateTenv(ref tenv, tyCheckTypeDec(ref tenv, tylist))}
@@ -524,18 +524,20 @@ struct
       val (venv', badHeader) = addHeaders(headerList, venv)
     in
       case badHeader of
-           true => (ERR.error (#pos (hd fundecList)) "Something wrong with headers of functions";
+           true => (error (#pos (hd fundecList)) "Something wrong with headers of functions";
            {venv=venv, tenv=tenv})
          | false => (case checkEachFundec(fundecList, {venv=venv', tenv=tenv}, headerList) of
                         true => {venv=venv', tenv=tenv}
-                      | false => (ERR.error (#pos (hd fundecList)) "Failing\
+                      | false => (error (#pos (hd fundecList)) "Failing\
                       \ fundec at the second pass: type checking return type\
                       \ of each fundec";{venv=venv, tenv=tenv} ))
     end
-   and checkEachFundec(fundecList: A.fundec list, {venv, tenv},  headerList: (Symbol.symbol * Env.enventry * bool) list): bool =
+   and checkEachFundec(fundecList: A.fundec list,
+                       {venv, tenv},
+                       headerList: (Symbol.symbol * Env.enventry * bool) list): bool =
     let
       fun checkFundec {venv: venv, tenv: tenv} ((fundec, header), false) = false
-        | checkFundec {venv, tenv: tenv} ((fundec, header), true) =
+        | checkFundec {venv: venv, tenv: tenv} ((fundec, header), true) =
             let
               fun addVar(fieldList): venv =
                  let fun helper ({name, escape, typ, pos}, table) =
@@ -550,7 +552,8 @@ struct
             in
                case tyEq(#ty t, expectedType, pos) of
                     true => true
-                  | false => (ERR.error pos ("Get " ^ T.toString(#ty t) ^ " rather than " ^ T.toString(expectedType)); false)
+                  | false => (mismatchErr("FunctionParam", pos, #ty t, expectedType);
+                              false)
             end
     in
       foldl (checkFundec {venv=venv, tenv=tenv}) true (ListPair.zip(fundecList, headerList))
