@@ -22,5 +22,5 @@ struct
     | ARRAY(t,_) => "array of " ^ toString(t)
     | NAME(symbol,_) => "name of " ^ Symbol.name(symbol)
     | UNIT => "unit"
-    | BOTTOM => "bottom"
+    | BOTTOM => "ErrorType"
 end
