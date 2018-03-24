@@ -115,12 +115,12 @@ struct
     )
     end
 
-  fun tyCheckOneField (allNames: tenv*A.symbol list) (symTy: A.symbol * A.pos): bool =
+  fun containsTy (fieldTy: A.symbol * A.pos, allTypes: tenv * A.symbol list): bool =
     let
-      fun eqItem (item1: A.symbol) (item2: A.symbol) = item1 = item2
-      val (tenv, newTypes) = allNames
-      val (sym, pos) = symTy
-      val foundInNewTypes = case List.find (eqItem sym) newTypes of
+      fun eqSymbol (item1: A.symbol) (item2: A.symbol) = item1 = item2
+      val (tenv, newTypes) = allTypes
+      val (sym, pos) = fieldTy
+      val foundInNewTypes = case List.find (eqSymbol sym) newTypes of
                                NONE => false
                              | SOME v => true
       val foundInTENV = case S.look(tenv, sym) of
@@ -130,16 +130,16 @@ struct
       foundInNewTypes orelse foundInTENV
     end
 
-  fun tyCheckRecordTy(fields, allNames) =
+  fun tyCheckRecordTy(fields, allTypes) =
     let
-      fun helper allNames ({name, escape, typ, pos}, allCorrect:bool): bool =
+      fun checkEachField allTypes ({name, escape, typ, pos}, allCorrect:bool): bool =
         let
-          val typeFound = tyCheckOneField allNames (typ, pos)
+          val typeFound = containsTy((typ, pos), allTypes)
         in
           allCorrect andalso typeFound
         end
     in
-      foldl (helper allNames) true fields
+      foldl (checkEachField allTypes) true fields
     end
 
   fun filterAndPrint f [] = []
@@ -153,17 +153,17 @@ struct
   fun tyCheckTypeDec(tenvRef, tylist: {name: A.symbol, ty: A.ty, pos: A.pos} list) =
     let
       val newTypes = map (fn r => #name r) tylist
-      val allNames = (!tenvRef, newTypes)
-      fun isLegal allNames {name, ty, pos} =
+      val allTypes = (!tenvRef, newTypes)
+      fun isLegal allTypes {name, ty, pos} =
         let
         in
           (case ty of
-                A.NameTy(nameTy) => tyCheckOneField allNames nameTy
-              | A.RecordTy(recordTy) => tyCheckRecordTy(recordTy, allNames)
-              | A.ArrayTy(arrTy) =>tyCheckOneField allNames arrTy
+                A.NameTy(nameTy) => containsTy(nameTy, allTypes)
+              | A.RecordTy(recordTy) => tyCheckRecordTy(recordTy, allTypes)
+              | A.ArrayTy(arrTy) => containsTy(arrTy, allTypes)
           )
         end
-      val legalTypes = filterAndPrint (isLegal allNames) tylist
+      val legalTypes = filterAndPrint (isLegal allTypes) tylist
     in
       case tylist = legalTypes of
            true => tylist (* stop updating; return the value *)
