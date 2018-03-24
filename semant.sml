@@ -93,9 +93,8 @@ struct
             (case (S.name(#1 x) = S.name(#1 y), tyEqOrIsSubtype(#2 x, #2 y, pos)) of
               (true, true) => checkFields(xs, ys, allCorrect)
               | _ => (
-                  (print (S.name(#1 x) ^ " : "
-                  ^ T.toString(#2 x) ^ "\n" ^ S.name(#1 y) ^ " : " ^
-                  T.toString(#2 y) ^ "\n"));
+                  (print (S.name(#1 x) ^ " : " ^ T.toString(#2 x) ^ "\n" ^
+                          S.name(#1 y) ^ " : " ^ T.toString(#2 y) ^ "\n"));
                   checkFields(xs, ys, false)
               )
             )
