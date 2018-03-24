@@ -18,7 +18,7 @@ struct
       InFrame(calOffset (#numLocals f))
     end
 
-  fun newFrame {name: Temp.label, formals: bool list} =
+  fun newFrame {name: Temp.label, formals: bool list}: frame =
     let
       val emptyFrame = {name=name, formals=formals, accesses=[], numLocals=ref 0}
       val accesses = map (allocLocal emptyFrame) formals
