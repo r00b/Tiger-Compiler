@@ -13,6 +13,7 @@ sig
 
   val transProg: exp -> unit
   val transExp: venv * tenv * exp -> expty
+  val duplicatedDec: S.symbol list -> bool
 end
 
 structure Semant : SEMANT =
@@ -62,6 +63,10 @@ struct
   fun tyNeq (t1: T.ty, t2: T.ty, pos:int): bool = not (tyEq(t1, t2, pos))
 
   fun isInt (ty:T.ty, pos) = tyEq(ty,T.INT,pos)
+
+  fun duplicatedDec [] = false
+    | duplicatedDec (x::xs) = List.exists (fn newV => newV = x) xs
+                              orelse duplicatedDec xs
 
   fun recordTyGenerator (tyList: A.field list, tenvRef: tenv ref) : T.ty =
     let
@@ -521,7 +526,15 @@ struct
          else (error pos ("tycon mistach"); {venv=venv, tenv=tenv}))
       end
    | transDec(A.TypeDec(tylist), {venv, tenv}) =
-         {venv=venv, tenv=updateTenv(ref tenv, tyCheckTypeDec(ref tenv, tylist))}
+      let
+        val containDup = duplicatedDec(map (fn r => #name r) tylist)
+      in
+        case containDup of
+             true => (error (#pos (hd tylist)) "error: duplicated type definition";
+                     map (fn r => print (S.name(#name r) ^ "\n")) tylist;
+                   {venv=venv, tenv=tenv})
+           | false => {venv=venv, tenv=updateTenv(ref tenv, tyCheckTypeDec(ref tenv, tylist))}
+      end
    | transDec(A.FunctionDec(fundecList), {venv, tenv}) =
        checkFunctionDec(fundecList, {venv=venv, tenv=tenv})
   and checkFunctionDec(fundecList, {venv, tenv}) =
