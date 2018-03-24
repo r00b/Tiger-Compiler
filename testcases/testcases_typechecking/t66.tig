@@ -1,0 +1,9 @@
+let 
+  type myint = int 
+  type myint2 = myint 
+  type myRec = {a:string, b:myint2}
+  var x: myint := 5
+  var y: myRec := myRec{a="yes", b=3}
+in 
+  (x; y)
+end

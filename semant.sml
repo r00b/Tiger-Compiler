@@ -38,6 +38,12 @@ struct
        | (T.NAME(n1), T.NAME(n2)) => n1 = n2
        | (T.BOTTOM, _) => true
        | (_, T.BOTTOM) => true
+       | (T.NAME(_, typeOptRef), t2) => (case !typeOptRef of
+                                             NONE => false
+                                           | SOME t => tyEq(t, t2, pos))
+       | (t1, T.NAME(_, typeOptRef)) => (case !typeOptRef of
+                                             NONE => false
+                                           | SOME t => tyEq(t1, t, pos))
        | (_, _) => false
 
   fun isSubtype(t1: T.ty, t2: T.ty) =
