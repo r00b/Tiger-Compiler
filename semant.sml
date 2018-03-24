@@ -36,8 +36,8 @@ struct
        | (T.ARRAY(t1, u1), T.ARRAY(t2, u2)) => u1 = u2
        | (T.NIL, T.NIL) => false (* TODO *)
        | (T.NAME(n1), T.NAME(n2)) => n1 = n2
-       | (T.BOTTOM, _) => false
-       | (_, T.BOTTOM) => false
+       | (T.BOTTOM, _) => true
+       | (_, T.BOTTOM) => true
        | (_, _) => false
 
   fun isSubtype(t1: T.ty, t2: T.ty) =
