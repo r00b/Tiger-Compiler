@@ -1,0 +1,8 @@
+let 
+  type a = int
+  type b = int
+  type a = b
+in 
+  5
+end
+

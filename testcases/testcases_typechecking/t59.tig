@@ -1,0 +1,12 @@
+/* funcdec : recursive */
+let 
+  function myprint(b:int) = 
+     if b > 3
+     then (print("ya");f(b - 5))
+  function f(a:int) = 
+     if a > 5
+     then myprint(5) /* legal */
+in
+  f(7)
+end
+

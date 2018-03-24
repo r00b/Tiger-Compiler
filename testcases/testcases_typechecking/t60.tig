@@ -1,0 +1,11 @@
+/* funcdec */
+let 
+  function myprint(): unit = 
+     print("ya")
+  function f(a:int): unit = 
+     if a > 5
+     then myprint()
+in
+  (f(7); f(3))
+end
+
