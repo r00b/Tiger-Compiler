@@ -555,7 +555,7 @@ struct
               val venvNew = addVar params
               val t =  transExp(venvNew, tenv, body)
             in
-               case tyEq(#ty t, expectedType) of
+               case tyEq(#ty t, expectedType, pos) of
                     true => true
                   | false => (ERR.error pos ("Get " ^ T.toString(#ty t) ^ " rather than " ^ T.toString(expectedType)); false)
             end
