@@ -8,17 +8,26 @@ struct
                 accesses: access list,
                 numLocals: int ref}
 
-  type frame = {name: Temp.label, accessTypes: string list, formals: bool list}
-  fun formals(f: frame) access list =
+  fun formals(f: frame): access list = #accesses f
+
+  fun allocLocal (f:frame) false: access = InReg(Temp.newtemp())
+    | allocLocal (f:frame) true: access = 
+    let 
+      fun calOffset (numLocals: int ref) = (numLocals := !numLocals + 1; (0 - 4 * !numLocals))
+    in
+      InFrame(calOffset (#numLocals f))
+    end
 
   fun newFrame {name: Temp.label, formals: bool list} =
- (* Because this “shift of view” depends on the calling conventions of the
- * target machine, it must be handled by the Frame module, starting with
- * newFrame. For each formal parameter, newFrame must calculate two things:
- *    1. How the parameter will be seen from inside the function
- *       (in a register, or in a frame location)
- *    2. What instructions must be produced to implement the “view shift.”*)
+    let
+      val emptyFrame = {name=name, formals=formals, accesses=[], numLocals=ref 0}
+      val accesses = map (allocLocal emptyFrame) formals
+    in
+      {name=name, formals=formals, accesses=accesses, numLocals=(#numLocals emptyFrame)}
+    end
 
-  fun allocLocal (f:frame) (b: bool): access = access
+  fun name (f:frame): Temp.label = #name f
 
-en
+  val wordSize = 4
+
+end
