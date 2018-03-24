@@ -378,7 +378,7 @@ struct
                 val varType = #ty (trvar(var))
                 val expType = #ty (trexp(exp))
               in
-                if tyEqOrIsSubtype(expType,varType,pos)
+                if tyEqOrIsSubtype(expType, varType, pos)
                 then {exp=(),ty=T.UNIT}
                 else (error pos ("type mismatch: cannot assign " ^ T.toString(expType) ^ " to var of " ^ T.toString(varType));
                       err_rep)
