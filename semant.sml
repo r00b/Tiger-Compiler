@@ -3,6 +3,7 @@ structure T = Types
 structure S = Symbol
 structure E = Env
 structure ERR = ErrorMsg
+structure R = Translate
 
 signature SEMANT =
 sig
@@ -12,7 +13,7 @@ sig
   type exp
 
   val transProg: exp -> unit
-  val transExp: venv * tenv * exp -> expty
+  val transExp: venv * tenv * R.level * exp -> expty
   val duplicatedDec: S.symbol list -> bool
 end
 
@@ -308,7 +309,7 @@ struct
         foldl helper (venv, false) headerList
       end
 
-  fun transExp(venv, tenv: tenv, exp) =
+  fun transExp(venv:venv, tenv:tenv, level:R.level, exp) =
     let
       fun trexp exp =
         case exp of
@@ -348,7 +349,7 @@ struct
 
           | A.RecordExp{fields,typ,pos} => tyCheckRecordExp(
                            map (fn (sym, exp, pos) =>
-                                   (sym, #ty (transExp(venv, tenv, exp)), pos)
+                                   (sym, #ty (transExp(venv, tenv, level, exp)), pos)
                                ) fields,
                            typ,
                            pos,
@@ -458,7 +459,7 @@ struct
           | A.LetExp({decs,body,pos}) =>
               let val {venv=venv', tenv=tenv'} = foldl transDec {venv=venv, tenv=tenv} decs
               in
-                transExp (venv', tenv', body)
+                transExp (venv', tenv', level, body)
               end
           | A.ArrayExp{typ, size, init, pos} =>
               tyCheckArrayExp(typ, tenv, trexp(size), trexp(init), pos)
@@ -505,17 +506,17 @@ struct
       trexp exp
     end
 
-  and transDec(A.VarDec{name, escape=ref True, typ=NONE, init, pos}, {venv,
-  tenv}) = (case init of
+  and transDec(A.VarDec{name, escape=ref True, typ=NONE, init, pos}, {venv,tenv}) =
+    (case init of
               A.NilExp => (error pos "NIL is not allowed\
             \ without specifying types in variable declarations";
             {venv=venv, tenv=tenv})
-            | otherExp => let val {exp, ty} = transExp (venv, tenv, otherExp)
+            | otherExp => let val {exp, ty} = transExp (venv, tenv, level, otherExp)
                           in {venv=S.enter(venv, name, E.VarEntry{ty=ty}), tenv=tenv}
                           end)
     | transDec(A.VarDec{name, escape=ref True, typ=SOME (symbol,p), init, pos},
     {venv, tenv}) =
-      let val {exp, ty=tyInit} = transExp (venv, tenv, init)
+      let val {exp, ty=tyInit} = transExp (venv, tenv, level, init)
           val isSameTy = case S.look(tenv, symbol) of
                             NONE => (error pos ("Cannot find the type:"
                             ^ S.name(symbol)); false)
@@ -567,7 +568,7 @@ struct
               val {name, params, result, body, pos} = fundec
               val (nameFun, E.FunEntry{formals, result=expectedType}, badHeader) = header
               val venvNew = addVar params
-              val t =  transExp(venvNew, tenv, body)
+              val t =  transExp(venvNew, tenv, level, body)
             in
                case tyEq(#ty t, expectedType, pos) of
                     true => true
@@ -581,8 +582,9 @@ struct
   fun transProg exp =
     let val venv = Env.base_venv
         val tenv = Env.base_tenv
+        val mainLevel = R.newLevel({parent=R.outermost,name=Temp.namedlabel("main"),formals=[]})
     in
-      (transExp(venv, tenv, exp) ;())
+      (transExp(venv, tenv, mainLevel, exp) ;())
     end
 
 end
