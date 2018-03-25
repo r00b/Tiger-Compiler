@@ -29,6 +29,8 @@ struct
   fun tyEq (t1:T.ty, t2:T.ty, pos:int): bool =
     case (t1, t2) of
          (T.RECORD(u1), T.RECORD(u2)) => (#2 u1) = (#2 u2)
+       | (T.NIL,T.RECORD(_)) => true
+       | (T.RECORD(_),T.NIL) => true
        | (T.RECORD(u1), _) => false
        | (_, T.RECORD(u1)) => false
        | (T.STRING, T.STRING) => true
