@@ -1,6 +1,6 @@
 let
-  type f = {val:int, name:string}
-  var a := f{val=4, name="hi"}
+  type a = {f : int}
+  var b := a{a = "a"}
 in
-  a = nil
+  3
 end
