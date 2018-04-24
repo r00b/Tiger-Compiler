@@ -1,9 +1,6 @@
 let
-  function reference(parameter: int) =
-    parameter := 3
-  var f := 4
-  function reference2(parameter: int) =
-    parameter := 3
+  type a = {f : int}
+  var b := a{f = 4}
 in
-  3 + 3
+  3
 end
