@@ -26,6 +26,8 @@ struct
   val err_rep = {exp=(),ty=T.BOTTOM}
   val error = ErrorMsg.error
 
+  val loopCount = ref 0
+
   fun tyEq (t1:T.ty, t2:T.ty, pos:int): bool =
     case (t1, t2) of
          (T.RECORD(u1), T.RECORD(u2)) => (#2 u1) = (#2 u2)
@@ -373,6 +375,7 @@ struct
               end
 
           | A.WhileExp({test,body,pos}) =>
+              (loopCount := !loopCount + 1;
               let
                  val {exp=testExp,ty=testTy} = trexp(test)
                  val {exp=bodyExp,ty=bodyTy} = trexp(body)
@@ -381,11 +384,12 @@ struct
                 then (error pos ("type mismatch: test expression must be int, not " ^ T.toString(testTy));
                       err_rep)
                 else if tyEq(bodyTy,T.UNIT,pos)
-                then {exp=(),ty=T.UNIT}
+                then (loopCount := !loopCount - 1; {exp=(),ty=T.UNIT})
                 else (error pos ("error: while body must eval to unit, not " ^ T.toString(bodyTy));
                       err_rep)
-              end
+              end)
           | A.ForExp({var,escape,lo,hi,body,pos}) =>
+            (loopCount := !loopCount + 1;
             let
               val loTy = #ty (trexp(lo))
               val hiTy = #ty (trexp(hi))
@@ -402,9 +406,11 @@ struct
               then (error pos ("error: for body must eval to unit, not " ^ T.toString(bodyTy));
                     err_rep)
               (* else transExp(venv2, tenv, A.LetExp{decs=loopDecs,body=body,pos=pos}) *)
-              else {exp=(),ty=T.UNIT}
-            end
-          | A.BreakExp(_) => {exp=(),ty=T.UNIT}
+              else (loopCount := !loopCount - 1; {exp=(),ty=T.UNIT})
+            end)
+          | A.BreakExp(pos) => if !loopCount = 0
+                             then (error pos ("error: illegal break"); err_rep)
+                             else {exp=(),ty=T.UNIT}
           | A.LetExp({decs,body,pos}) =>
               let val {venv=venv', tenv=tenv'} = foldl transDec {venv=venv, tenv=tenv} decs
               in

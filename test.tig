@@ -1,6 +1,6 @@
 let
   type a = {f : int}
-  var b := a{f = 4}
+  var b := a{a = 4}
 in
-  3
+  4
 end
