@@ -405,7 +405,6 @@ struct
               else if not (tyEq(bodyTy,T.UNIT,pos))
               then (error pos ("error: for body must eval to unit, not " ^ T.toString(bodyTy));
                     err_rep)
-              (* else transExp(venv2, tenv, A.LetExp{decs=loopDecs,body=body,pos=pos}) *)
               else (loopCount := !loopCount - 1; {exp=(),ty=T.UNIT})
             end)
           | A.BreakExp(pos) => if !loopCount = 0
